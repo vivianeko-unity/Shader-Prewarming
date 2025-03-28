@@ -35,6 +35,9 @@ This helps optimize shader compilation by:
 4. **Runtime Pre-compilation**:
    - ShaderPreCompiler loads and warms up variants at startup
 
+## Notes
+- Example ShadersLog file should not be used, instead follow the Maintenance phase steps to updated with correct information from the project
+
 ## Debug Options
 - DEBUG_SHADER_VARIANTS - Enables logging of shader compilations during runtime
 - DEBUG_SHADER_PRECOMPILER - Disables prewarming to identify currently needed variants
