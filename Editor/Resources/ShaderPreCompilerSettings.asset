@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8807c9c38b98c245a2675f5009869a3, type: 3}
+  m_Name: ShaderPreCompilerSettings
+  m_EditorClassIdentifier: 
+  logFilePath: Packages/com.shaderprewarming.shaderprewarming/Editor/ShadersLog.txt
+  lineBeginning: 'Uploaded shader variant to the GPU driver:'
+  minUploadTime: 8
+  skipMultipleUploads: 0
+  startingLine: 'ShaderPreCompiler: Disabled, debugging variants to pre-compile.'
+  manualShaderVariantsData:
+  - shader: {fileID: 4800000, guid: 0e07b1de2fcccf643be46774cf8e4928, type: 3}
+    passType: 0
+    keywords: []
+    uploadTime: 0
+    uploadCount: 0
+  shaderVariantCollection: {fileID: 20000000, guid: 9f6efd1c3408a6442957e7cf7ace845d,
+    type: 2}
