@@ -1,41 +1,37 @@
 # Shader-Prewarming
-Creates and maintain the list of variants to prewarm
+Generates and maintains the ShaderVariantCollection to pre-warm.
 
 ## Overview
 This helps optimize shader compilation by:
-1. Tracking shader variants compiled during runtime
+1. Parsing shader compilation logs
 2. Processing and filtering relevant variants to be pre-compiled
-3. Pre-compiling these variants during game startup
+3. Automatically generating an updated ShaderVariantCollection at build time
+4. Pre-compiling the ShaderVariantCollection at startup
 
 ## Setup or 1st time run
-1. Configure `ShaderPreCompilerSettings` settings, if needed (default settings should work for most cases):
-   - Set path to shaders log file
-   - Adjust minimum upload time threshold
-   - Configure filtering options
-   - Add manual shader variants if needed
-   - Assign a ShaderVariantCollection asset
-2. Run the Maintenance phase
+1. Configure `ShaderPreCompilerSettings` settings if needed (default settings should work for most cases)
+2. Run the Maintenance phase to get a shaders log and populate the ShaderVariantCollection at build time
 3. Place the `ShaderPreCompiler` component on a GameObject or use the `ShaderPreCompiler` prefab in startup scene
 
 ## How It Works
 1. **Logging Phase**:
    - Enable `DEBUG_SHADER_VARIANTS` and make a development build
    - Run the game to log shader compilations
-   - Variants are logged to player log file
 2. **Maintenance**:
    - Enable `DEBUG_SHADER_PRECOMPILER` and make a development build
-   - Run the game to log shader compilations without prewarming (to avoid adding variants that are not needed anymore)
+   - Run the game to log shader compilations without prewarming (this will avoid adding variants that are not needed anymore)
    - Up-to-date variants are logged to player log file
    - Copy the content into the shaders log file (it will automatically clean and analyze the file)
 3. **Processing Phase**:
-   - It will analyze and regenerate the updated ShaderVariantCollection on the next build (manual option to update the svc if needed: Tools/Shader Variants Processor)
-   - Parses the log file
-   - Filters variants based on settings
-   - Updates the ShaderVariantCollection
+   - Analyzes and re-generate the updated ShaderVariantCollection on the next build (manual option to update the svc if needed: Tools/Shader Variants Processor)
+      - Parses the log file
+      - Filters variants based on settings
+      - Updates the ShaderVariantCollection
 4. **Runtime Pre-compilation**:
    - ShaderPreCompiler loads and warms up variants at startup
 
 ## Notes
+- **Important**: All shaders in the SVC must be loaded before loading the SVC itself. Otherwise this will cause Unity to duplicate the shaders in the build and pre-warm incorrect versions.
 - Example ShadersLog file should not be used, instead follow the Maintenance phase steps to updated with correct information from the project
 
 ## Debug Options
