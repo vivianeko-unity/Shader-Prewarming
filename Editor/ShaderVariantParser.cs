@@ -84,27 +84,44 @@ public static class ShaderVariantParser
             // extract shader
             int shaderNameStart = line.IndexOf(_settings.lineBeginning, StringComparison.Ordinal) +
                                   _settings.lineBeginning.Length;
-            int shaderNameEnd = line.IndexOf(" (instance", shaderNameStart, StringComparison.Ordinal);
+            int shaderNameEnd = line.Contains("(instance")
+                ? line.IndexOf(" (instance", shaderNameStart, StringComparison.Ordinal)
+                : line.IndexOf(", pass:", shaderNameStart, StringComparison.Ordinal);
             string shaderName = line.Substring(shaderNameStart, shaderNameEnd - shaderNameStart).Trim();
             Shader shader = Shader.Find(shaderName);
 
             // extract passType
-            int passStart = line.IndexOf("pass: ", StringComparison.Ordinal) + "pass: ".Length;
-            int passEnd = line.IndexOf(", keywords", passStart, StringComparison.Ordinal);
+            int passStart = line.IndexOf("pass: ", StringComparison.Ordinal) + "pass: ".Length;            
+            int passEnd = line.Contains(", stage:")
+                ? line.IndexOf(", stage:", passStart, StringComparison.Ordinal)
+                : line.IndexOf(", keywords", passStart, StringComparison.Ordinal);
             string passName = line.Substring(passStart, passEnd - passStart).Trim();
             (PassType passType, string lightMode) = GetPassType(shader, passName);
 
             // extract keywords
-            int keywordsStart = line.IndexOf("keywords ", StringComparison.Ordinal) + "keywords ".Length;
-            int keywordsEnd = line.IndexOf(", time", keywordsStart, StringComparison.Ordinal);
-            string keywords = line.Substring(keywordsStart, keywordsEnd - keywordsStart).Trim();
+            int keywordsStart = line.IndexOf("keywords ", StringComparison.Ordinal) + "keywords ".Length;        
+            string keywords;
+            if (line.Contains(", time:"))
+            {
+                int keywordsEnd = line.IndexOf(", time", keywordsStart, StringComparison.Ordinal);
+                keywords = line.Substring(keywordsStart, keywordsEnd - keywordsStart).Trim();
+            }
+            else
+            {
+                // No time field
+                keywords = line.Substring(keywordsStart).Trim();
+            }
             string[] keywordArray = keywords == "<no keywords>" ? Array.Empty<string>() : keywords.Split(' ');
 
             // extract upload time
-            int timeStart = line.IndexOf("time: ", StringComparison.Ordinal) + "time: ".Length;
-            int timeEnd = line.IndexOf(" ms", timeStart, StringComparison.Ordinal);
-            string timeString = line.Substring(timeStart, timeEnd - timeStart).Trim();
-            float duration = float.Parse(timeString);
+            float duration = 0;
+            if (line.Contains(", time:"))
+            {
+                int timeStart = line.IndexOf("time: ", StringComparison.Ordinal) + "time: ".Length;
+                int timeEnd = line.IndexOf(" ms", timeStart, StringComparison.Ordinal);
+                string timeString = line.Substring(timeStart, timeEnd - timeStart).Trim();
+                duration = float.Parse(timeString);
+            }
 
             /*Debug.Log(
                 $"Found variant in log: {shaderName} | passType: {passType} | PassName: {passName} | " +
