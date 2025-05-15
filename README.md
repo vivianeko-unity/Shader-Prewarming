@@ -9,9 +9,9 @@ This helps optimize shader compilation by:
 4. Pre-compiling the ShaderVariantCollection at startup
 
 ## Setup or 1st time run
-1. Configure `ShaderPreCompilerSettings` settings if needed (default settings should work for most cases)
+1. Configure `ShaderPreCompilerSettings` asset if needed (default settings should work for most cases)
 2. Run the Maintenance phase to get a shaders log and populate the ShaderVariantCollection at build time
-3. Place the `ShaderPreCompiler` component on a GameObject or use the `ShaderPreCompiler` prefab in startup scene
+3. Add the `ShaderPreCompiler` component to a GameObject or use the `ShaderPreCompiler` prefab in startup scene
 
 ## How It Works
 1. **Logging Phase**:
@@ -32,7 +32,7 @@ This helps optimize shader compilation by:
 
 ## Notes
 - **Important**: All shaders in the SVC must be loaded before loading the SVC itself. Otherwise this will cause Unity to duplicate the shaders in the build and pre-warm incorrect versions.
-- Example ShadersLog file should not be used, instead follow the Maintenance phase steps to updated with correct information from the project
+- Example ShadersLog file should not be used, instead follow the Maintenance phase steps to update it with the correct information from the project
 
 ## Debug Options
 - DEBUG_SHADER_VARIANTS - Enables logging of shader compilations during runtime
