@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEditor;
 
 /// <summary>
 /// Generates new shader variants to be pre-warmed by ShaderPreCompiler.
@@ -10,7 +11,20 @@ public class ShaderVariantsProcessor
     public static void UpdateVariantListToPreCompile()
     {
         var settings = Resources.Load<ShaderPreCompilerSettings>($"{nameof(ShaderPreCompilerSettings)}");
+        if (settings == null)
+        { 
+            settings = ScriptableObject.CreateInstance<ShaderPreCompilerSettings>();
+            if (!AssetDatabase.IsValidFolder("Assets/Resources"))
+            {
+                AssetDatabase.CreateFolder("Assets", "Resources");
+            }
 
+            string assetPath = $"Assets/Resources/{nameof(ShaderPreCompilerSettings)}.asset";
+            AssetDatabase.CreateAsset(settings, assetPath);
+            AssetDatabase.SaveAssets();
+            settings.shaderVariantCollection = AssetDatabase.LoadAssetAtPath<ShaderVariantCollection>(settings.SVCPath);
+        }
+        
         List<ShaderVariantData> variantDataList = ShaderVariantParser.ParseShaderVariantsFromFile(settings);
         List<ShaderVariantData> variants = new (settings.manualShaderVariantsData);
 

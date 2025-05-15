@@ -89,7 +89,11 @@ public static class ShaderVariantParser
                 : line.IndexOf(", pass:", shaderNameStart, StringComparison.Ordinal);
             string shaderName = line.Substring(shaderNameStart, shaderNameEnd - shaderNameStart).Trim();
             Shader shader = Shader.Find(shaderName);
-
+            if (shader is null)
+            {
+                Debug.LogWarning($"Shader {shader.name} was not found.");
+            }
+            
             // extract passType
             int passStart = line.IndexOf("pass: ", StringComparison.Ordinal) + "pass: ".Length;            
             int passEnd = line.Contains(", stage:")
