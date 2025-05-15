@@ -26,7 +26,7 @@ public class ShaderVariantsProcessor
         }
         
         List<ShaderVariantData> variantDataList = ShaderVariantParser.ParseShaderVariantsFromFile(settings);
-        List<ShaderVariantData> variants = new (settings.manualShaderVariantsData);
+        List<ShaderVariantData> variants = new List<ShaderVariantData>(settings.manualShaderVariantsData ?? new List<ShaderVariantData>());
 
         foreach (ShaderVariantData variantData in variantDataList)
         {

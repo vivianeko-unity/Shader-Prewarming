@@ -91,7 +91,8 @@ public static class ShaderVariantParser
             Shader shader = Shader.Find(shaderName);
             if (shader is null)
             {
-                Debug.LogWarning($"Shader {shader.name} was not found.");
+                Debug.LogWarning($"Shader {shaderName} was not found.");
+                return null;
             }
             
             // extract passType
