@@ -51,4 +51,4 @@ This helps optimize shaders by:
 
 ## Notes
 - **Important**: All shaders in the SVC must be loaded before loading the SVC itself. Otherwise this will cause Unity to duplicate the shaders in the build and pre-warm incorrect versions.
-- Repeat maintenance phase when adding new shaders/materials or changing rendering features.
+- Repeat maintenance phase when adding new shaders/materials.
