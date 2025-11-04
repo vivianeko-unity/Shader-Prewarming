@@ -9,14 +9,16 @@ using UnityEngine.Rendering;
 
 /// <summary>
 /// Parses the ShadersLog.txt file to extract shader variant data uploaded at runtime.
-/// To update the ShadersLog.txt file check stopPreCompiling in ShaderPreCompilerSettings asset.
+/// This will also extract the global keywords used at runtime to use later when stripping.
 /// </summary>
 public static class ShaderVariantParser
 {
     private static ShaderPreCompilerSettings _settings;
+    private static readonly HashSet<string> GlobalKeywordsFoundInLog = new();
     public static List<ShaderVariantData> ParseShaderVariantsFromFile(ShaderPreCompilerSettings settings)
     {
         _settings = settings;
+        GlobalKeywordsFoundInLog.Clear();
 
         if (string.IsNullOrEmpty(_settings.logFilePath) || !File.Exists(_settings.logFilePath))
         {
@@ -24,12 +26,16 @@ public static class ShaderVariantParser
             return null;
         }
 
+        var allGlobalKeywords = new HashSet<string>(Shader.globalKeywords.Select(keyword => keyword.name));
+
         List<ShaderVariantData> variantDataList = new();
         Dictionary<string, ShaderVariantData> variantOccurrences = new();
 
         string[] filteredLines = PreprocessLogFile();
         foreach (string line in filteredLines)
         {
+            CollectGlobalKeywordsFromLine(line, allGlobalKeywords);
+
             ShaderVariantData variantData = ParseLine(line);
             if (variantData == null)
             {
@@ -49,6 +55,7 @@ public static class ShaderVariantParser
             }
         }
 
+        AddGlobalKeywordsToSettings();
         return variantDataList;
     }
 
@@ -62,12 +69,7 @@ public static class ShaderVariantParser
             List<string> filteredLines =
                 lines.Skip(startingLineIndex + 1).Where(line => line.Contains(_settings.lineBeginning)).ToList();
 
-            // cleanup log file
-            StringBuilder sb = new ();
-            sb.AppendLine(_settings.startingLine);
-            sb.Append(string.Join(Environment.NewLine, filteredLines));
-            File.WriteAllText(_settings.logFilePath, sb.ToString());
-
+            CleanupLogFile(filteredLines);
             return filteredLines.ToArray();
         }
         catch (Exception ex)
@@ -75,6 +77,21 @@ public static class ShaderVariantParser
             Debug.LogError($"Failed to preprocess the log file: {ex.Message}");
             return null;
         }
+    }
+
+    private static void CleanupLogFile(List<string> filteredLines)
+    {
+        StringBuilder sb = new ();
+        sb.AppendLine(_settings.startingLine);
+        sb.Append(string.Join(Environment.NewLine, filteredLines));
+
+        string newContent = sb.ToString();
+        string existingContent = File.ReadAllText(_settings.logFilePath);
+        if (existingContent == newContent) return;
+
+        File.SetAttributes(_settings.logFilePath, FileAttributes.Normal);
+        // if perfoce make sure to checkout file _settings.logFilePath here
+        File.WriteAllText(_settings.logFilePath, newContent);
     }
 
     private static ShaderVariantData ParseLine(string line)
@@ -94,9 +111,9 @@ public static class ShaderVariantParser
                 Debug.LogWarning($"Shader {shaderName} was not found.");
                 return null;
             }
-            
+
             // extract passType
-            int passStart = line.IndexOf("pass: ", StringComparison.Ordinal) + "pass: ".Length;            
+            int passStart = line.IndexOf("pass: ", StringComparison.Ordinal) + "pass: ".Length;
             int passEnd = line.Contains(", stage:")
                 ? line.IndexOf(", stage:", passStart, StringComparison.Ordinal)
                 : line.IndexOf(", keywords", passStart, StringComparison.Ordinal);
@@ -104,7 +121,7 @@ public static class ShaderVariantParser
             (PassType passType, string lightMode) = GetPassType(shader, passName);
 
             // extract keywords
-            int keywordsStart = line.IndexOf("keywords ", StringComparison.Ordinal) + "keywords ".Length;        
+            int keywordsStart = line.IndexOf("keywords ", StringComparison.Ordinal) + "keywords ".Length;
             string keywords;
             if (line.Contains(", time:"))
             {
@@ -166,6 +183,7 @@ public static class ShaderVariantParser
             "SRPDEFAULTUNLIT" => PassType.ScriptableRenderPipelineDefaultUnlit,
             "UNIVERSALFORWARD" => PassType.ScriptableRenderPipeline,
             "SHADOWCASTER" => PassType.ShadowCaster,
+            "Meta"  => PassType.Meta,
             "" => PassType.Normal,
             _ => PassType.ScriptableRenderPipeline
         };
@@ -178,4 +196,59 @@ public static class ShaderVariantParser
         return $"{shaderVariantData.shader.name}|" + $"{shaderVariantData.passType.ToString()}|" +
                $"{string.Join(" ", shaderVariantData.keywords)}";
     }
+
+    private static void CollectGlobalKeywordsFromLine(string line, HashSet<string> allGlobalKeywords)
+    {
+        try
+        {
+            int keywordsStart = line.IndexOf("keywords ", StringComparison.Ordinal);
+            if (keywordsStart == -1) return;
+
+            keywordsStart += "keywords ".Length;
+            string keywords;
+
+            if (line.Contains(", time:"))
+            {
+                int keywordsEnd = line.IndexOf(", time", keywordsStart, StringComparison.Ordinal);
+                keywords = line.Substring(keywordsStart, keywordsEnd - keywordsStart).Trim();
+            }
+            else
+            {
+                keywords = line.Substring(keywordsStart).Trim();
+            }
+
+            if (keywords == "<no keywords>") return;
+
+            string[] keywordArray = keywords.Split(' ');
+            foreach (string keyword in keywordArray)
+            {
+                string cleanKeyword = keyword.Trim();
+                if (allGlobalKeywords.Contains(cleanKeyword))
+                {
+                    GlobalKeywordsFoundInLog.Add(cleanKeyword);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"Failed to collect global keywords from line: {line}\nError: {ex.Message}");
+        }
+    }
+
+    private static void AddGlobalKeywordsToSettings()
+    {
+        _settings.enabledGlobalKeywords ??= new List<string>();
+
+        foreach (string globalKeyword in GlobalKeywordsFoundInLog)
+        {
+            if (!_settings.enabledGlobalKeywords.Contains(globalKeyword))
+            {
+                _settings.enabledGlobalKeywords.Add(globalKeyword);
+            }
+        }
+
+        EditorUtility.SetDirty(_settings);
+        AssetDatabase.SaveAssets();
+    }
+
 }

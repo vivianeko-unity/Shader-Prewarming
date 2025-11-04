@@ -1,11 +1,13 @@
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class ShaderPreCompilerSettings : ScriptableObject
 {
     [Header("Log Parsing")]
     [Tooltip("Path to ShadersLog.txt file.")]
-    public string logFilePath = "Packages/com.shaderprewarming.shaderprewarming/Editor/ShadersLog.txt";
+    public string logFilePath = "Assets/Editor/ShaderPrewarming/ShadersLog.txt";
     [Tooltip("The beginning part of each line when a shader variant is uploaded to the gpu.")]
     public string lineBeginning = "Uploaded shader variant to the GPU driver:";
 
@@ -18,10 +20,20 @@ public class ShaderPreCompilerSettings : ScriptableObject
     [Tooltip("The line when parsing should start so we only pre-compile variants uploaded after the loading screen")]
     public string startingLine = "ShaderPreCompiler: Disabled, debugging variants to pre-compile.";
 
-    [Tooltip("If adding variants manually")]
+    [Tooltip("If adding variants manually to warmup")]
     public List<ShaderVariantData> manualShaderVariantsData;
 
-    [Tooltip("The shader variant collection to be pre-compiled.")]
-    public string SVCPath = "Packages/com.shaderprewarming.shaderprewarming/Runtime/ShaderVariantsToPreCompile.shadervariants";
-    public ShaderVariantCollection shaderVariantCollection;
+    [FormerlySerializedAs("WarmupSvcPath")] [Tooltip("The shader variant collection to be pre-compiled.")]
+    public string warmupSvcPath = "Assets/Shaders/ShaderVariantsToPreCompile.shadervariants";
+    public ShaderVariantCollection warmupSvc;
+
+    [Header("Shader variants stripping settings.")]
+    public bool strippingEnabled = true;
+    [Space] public List<string> enabledGlobalKeywords;
+    [Space] public List<ShaderKeywordsData> localKeywords;
+
+    private void OnEnable()
+    {
+        warmupSvc = AssetDatabase.LoadAssetAtPath<ShaderVariantCollection>(warmupSvcPath);
+    }
 }

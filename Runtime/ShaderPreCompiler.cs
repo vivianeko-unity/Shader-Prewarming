@@ -4,6 +4,7 @@ using UnityEngine;
 /// Example Shader Pre warming implementation.
 /// If shaders referenced in the SVC are not loaded first, Unity will duplicate them in the build and pre-warm incorrect versions.
 /// Ensure all referenced shaders are loaded before attempting to load and warmup the SVC.
+/// If using addressables or asset bundles, make sure to set the SVC as addressable, and load all referenced shaders first
 /// </summary>
 public class ShaderPreCompiler : MonoBehaviour
 {
@@ -14,19 +15,21 @@ public class ShaderPreCompiler : MonoBehaviour
 #if DEBUG_SHADER_PRECOMPILER
         Debug.Log("ShaderPreCompiler: Disabled, debugging variants to pre-compile.");
 #else
+        // if addressables wait for shaders bundle to be downloaded first
         LoadSvc();
-        if (svc == null)
-        {
-            Debug.LogError("ShaderVariantsToPreCompile FAILED to load");
-            return;
-        }
-        WarmupSvc();
 #endif
     }
 
     private void LoadSvc()
     {
-        // load the svc first
+        // if addressables load the svc here
+        
+        if (!svc)
+        {
+            Debug.LogError("ShaderVariantsToPreCompile FAILED to load");
+            return;
+        }
+        WarmupSvc();
     }
     
     private void WarmupSvc()

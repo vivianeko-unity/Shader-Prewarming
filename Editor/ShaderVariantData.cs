@@ -11,3 +11,11 @@ public class ShaderVariantData
     public float uploadTime;
     public int uploadCount;
 }
+
+
+[Serializable]
+public class ShaderKeywordsData
+{
+    public Shader shader;
+    public string[] keywords;
+}
