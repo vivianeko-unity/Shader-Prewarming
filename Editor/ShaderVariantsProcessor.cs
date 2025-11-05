@@ -70,7 +70,7 @@ public class ShaderVariantsProcessor
         File.WriteAllText(ReportPath, string.Empty);
 
         _settings = GetSettings();
-        if (_settings == null)
+        if (!_settings)
         {
             if (!AssetDatabase.IsValidFolder("Assets/Editor")) AssetDatabase.CreateFolder("Assets", "Editor");
             if (!AssetDatabase.IsValidFolder("Assets/Editor/ShaderPrewarming"))
@@ -129,7 +129,7 @@ public class ShaderVariantsProcessor
                 continue;
             }
 
-            // Uncomment if only including Addressables shaders: If svc is in addressables, any shaders included will be addressables
+            // Uncomment to only include Addressables shaders: If svc is in addressables, any shaders included will be addressables
             
             // var shaderPath = AssetDatabase.GetAssetPath(variantData.shader);
             // var shaderGuid = AssetDatabase.AssetPathToGUID(shaderPath);
@@ -163,38 +163,54 @@ public class ShaderVariantsProcessor
         _settings.localKeywords ??= new List<ShaderKeywordsData>();
         _settings.localKeywords.Clear();
 
+        var uniqueVariants = new HashSet<string>();
+        var variantList = new List<ShaderKeywordsData>();
+
         foreach (var variant in _variantWarmupDataList)
         {
-            AddKeywords(variant.shader, variant.keywords);
+            AddKeywordsUnique(variantList, uniqueVariants, variant.shader, variant.keywords);
         }
 
         foreach (var variant in _settings.manualShaderVariantsData)
         {
-            AddKeywords(variant.shader, variant.keywords);
+            AddKeywordsUnique(variantList, uniqueVariants, variant.shader, variant.keywords);
         }
 
         var materialGuids = AssetDatabase.FindAssets("t:Material");
         foreach (var guid in materialGuids)
         {
             var material = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(guid));
-            AddKeywords(material.shader, material.enabledKeywords.Select(keyword => keyword.name).ToArray());
+            AddKeywordsUnique(variantList, uniqueVariants, material.shader,
+                material.enabledKeywords.Select(keyword => keyword.name).ToArray());
         }
 
         var resourcesMaterials = Resources.FindObjectsOfTypeAll<Material>();
         foreach (var material in resourcesMaterials)
         {
-            AddKeywords(material.shader, material.enabledKeywords.Select(keyword => keyword.name).ToArray());
+            AddKeywordsUnique(variantList, uniqueVariants, material.shader,
+                material.enabledKeywords.Select(keyword => keyword.name).ToArray());
         }
+
+        _settings.localKeywords = variantList
+            .OrderBy(x => x.shader != null ? x.shader.name : "")
+            .ToList();
 
         EditorUtility.SetDirty(_settings);
         AssetDatabase.SaveAssets();
     }
 
-    private static void AddKeywords(Shader shader, string[] keywords)
+    private static void AddKeywordsUnique(List<ShaderKeywordsData> variantList, HashSet<string> uniqueVariants,
+        Shader shader, string[] keywords)
     {
-        if(IgnoreShader(shader)) return;
-        var localKeywords = keywords.Where(k => !_settings.enabledGlobalKeywords.Contains(k)).ToArray();
-        _settings.localKeywords.Add(new ShaderKeywordsData{shader = shader, keywords = localKeywords});
+        if (IgnoreShader(shader)) return;
+
+        var localKeywords = keywords.Where(k => !_settings.enabledGlobalKeywords.Contains(k))
+            .OrderBy(k => k).ToArray();
+
+        var uniqueKey = $"{shader.name}|{string.Join("|", localKeywords)}";
+
+        if (uniqueVariants.Add(uniqueKey))
+            variantList.Add(new ShaderKeywordsData { shader = shader, keywords = localKeywords });
     }
 
     private static readonly string[] IgnoredShaders = {
