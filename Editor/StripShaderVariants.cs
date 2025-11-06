@@ -53,8 +53,9 @@ public class StripShaderVariants : IPreprocessShaders
 #if DEBUG_SHADER_PRECOMPILER
         return false;
 #else
-        if (ShaderVariantsProcessor.IgnoreShader(shader))
-            return false;
+        if (!_settings.strippingEnabled) return false;
+
+        if (ShaderVariantsProcessor.IgnoreShader(shader)) return false;
 
         bool hasMatch = false;
         foreach (var keywordData in _settings.localKeywords)

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,6 +15,13 @@ public class ShaderVariantsProcessor
     public static readonly string ReportPath = Path.GetFullPath("Artifact/ShaderVariantsCompiled.txt");
     private const string SettingsAssetPath = "Assets/Editor/ShaderPrewarming/ShaderPreCompilerSettings.asset";
     private static ShaderPreCompilerSettings _settings;
+    
+    private const string RuntimeCollectionEnabledKey = "ShaderVariantsProcessor_RuntimeCollectionEnabled";
+    private static readonly HashSet<string> RuntimeCollectedVariants = new();
+    private static readonly HashSet<string> RuntimeCollectedGlobalKeywords = new();
+    private static bool _isCollectingRuntime;
+    private static bool _initialized;
+    
     public static ShaderPreCompilerSettings GetSettings()
     {
         if (!_settings)
@@ -38,6 +46,111 @@ public class ShaderVariantsProcessor
 
         EditorUtility.SetDirty(_settings);
         AssetDatabase.SaveAssets();
+    }
+
+    [MenuItem("Tools/Shader Optimization/Clear Local Keywords")]
+    public static void ClearALlCurrentLocalKeywords()
+    {
+        Setup();
+        _settings.localKeywords.Clear();
+    }
+
+    [InitializeOnLoadMethod]
+    private static void Initialize()
+    {
+        if (_initialized) return;
+        _initialized = true;
+
+        _isCollectingRuntime = EditorPrefs.GetBool(RuntimeCollectionEnabledKey, false);
+        Menu.SetChecked("Tools/Shader Optimization/Enable Runtime Collection", _isCollectingRuntime);
+
+        if (_isCollectingRuntime)
+        {
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            EditorApplication.update += CollectRuntimeKeywords;
+            Debug.Log("<color=green>Runtime keyword collection is ENABLED.</color>");
+        }
+    }
+
+    [MenuItem("Tools/Shader Optimization/Enable Runtime Collection")]
+    public static void EnableRuntimeCollection()
+    {
+        _isCollectingRuntime = !_isCollectingRuntime;
+        EditorPrefs.SetBool(RuntimeCollectionEnabledKey, _isCollectingRuntime);
+        Menu.SetChecked("Tools/Shader Optimization/Enable Runtime Collection", _isCollectingRuntime);
+
+        if (_isCollectingRuntime)
+        {
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            EditorApplication.update += CollectRuntimeKeywords;
+        }
+        else
+        {
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            EditorApplication.update -= CollectRuntimeKeywords;
+        }
+    }
+
+    private static void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.EnteredPlayMode)
+        {
+            RuntimeCollectedVariants.Clear();
+            Debug.Log("Started collecting runtime keywords");
+        }
+        else if (state == PlayModeStateChange.ExitingPlayMode)
+        {
+            SaveRuntimeCollectedKeywords();
+        }
+    }
+
+    private static void CollectRuntimeKeywords()
+    {
+        if (!EditorApplication.isPlaying || !_isCollectingRuntime) return;
+        
+        foreach (var keyword in Shader.enabledGlobalKeywords)
+        {
+            RuntimeCollectedGlobalKeywords.Add(keyword.name);
+        }
+
+        var activeMaterials = Resources.FindObjectsOfTypeAll<Material>().ToList();
+        
+        foreach (var material in activeMaterials)
+        {
+            if (IgnoreShader(material.shader)) continue;
+
+            var keywords = material.enabledKeywords.Select(k => k.name).ToArray();
+            var line = $"{material.shader.name}|{string.Join(" ", keywords)}";
+            RuntimeCollectedVariants.Add(line);
+        }
+    }
+    
+    private static void SaveRuntimeCollectedKeywords()
+    {
+        Debug.Log($"Exiting play mode. Collected {RuntimeCollectedVariants.Count} unique variants.");
+    
+        if (RuntimeCollectedVariants.Count == 0 && RuntimeCollectedGlobalKeywords.Count == 0)
+            return;
+
+        Setup();
+
+        _settings.enabledGlobalKeywords ??= new List<string>();
+        foreach (var keyword in RuntimeCollectedGlobalKeywords)
+        {
+            if (!_settings.enabledGlobalKeywords.Contains(keyword))
+            {
+                _settings.enabledGlobalKeywords.Add(keyword);
+            }
+        }
+        RuntimeCollectedGlobalKeywords.Clear();
+
+        if (RuntimeCollectedVariants.Count > 0)
+        {
+            var outputPath = "Temp/RuntimeCollectedKeywords.txt";
+            File.WriteAllLines(outputPath, RuntimeCollectedVariants);
+            RuntimeCollectedVariants.Clear();
+        }
+        UpdateVariantListToStrip(true);
     }
 
     // This is called during builds
@@ -157,14 +270,30 @@ public class ShaderVariantsProcessor
         AssetDatabase.SaveAssets();
     }
 
-    private static void UpdateVariantListToStrip()
+    private static void UpdateVariantListToStrip(bool importRuntimeKeywords = false)
     {
         if (!_settings.strippingEnabled) return;
         _settings.localKeywords ??= new List<ShaderKeywordsData>();
-        _settings.localKeywords.Clear();
 
         var uniqueVariants = new HashSet<string>();
         var variantList = new List<ShaderKeywordsData>();
+
+        if (importRuntimeKeywords)
+        {
+            ImportRuntimeCollectedKeywords(variantList, uniqueVariants);
+        }
+        else
+        {
+            foreach (var existing in _settings.localKeywords)
+            {
+                if (existing.shader == null) continue;
+                var localKeywords = existing.keywords.Where(k => !_settings.enabledGlobalKeywords.Contains(k))
+                    .OrderBy(k => k).ToArray();
+                var uniqueKey = $"{existing.shader.name}|{string.Join("|", localKeywords)}";
+
+                if (uniqueVariants.Add(uniqueKey)) variantList.Add(existing);
+            }
+        }
 
         foreach (var variant in _variantWarmupDataList)
         {
@@ -197,6 +326,27 @@ public class ShaderVariantsProcessor
 
         EditorUtility.SetDirty(_settings);
         AssetDatabase.SaveAssets();
+    }
+
+    private static void ImportRuntimeCollectedKeywords(List<ShaderKeywordsData> variantList, HashSet<string> uniqueVariants)
+    {
+        string runtimeDataPath = "Temp/RuntimeCollectedKeywords.txt";
+        if (!File.Exists(runtimeDataPath))
+            return;
+
+        string[] lines = File.ReadAllLines(runtimeDataPath);
+
+        foreach (var line in lines)
+        {
+            var parts = line.Split('|');
+            if (parts.Length != 2) continue;
+
+            var shaderName = parts[0];
+            var keywords = parts[1].Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            var shader = Shader.Find(shaderName);
+            AddKeywordsUnique(variantList, uniqueVariants, shader, keywords);
+        }
     }
 
     private static void AddKeywordsUnique(List<ShaderKeywordsData> variantList, HashSet<string> uniqueVariants,

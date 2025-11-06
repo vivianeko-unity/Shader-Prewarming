@@ -66,8 +66,13 @@ public static class ShaderVariantParser
             string[] lines = File.ReadAllLines(_settings.logFilePath);
             int startingLineIndex = Array.FindIndex(lines, line => line == _settings.startingLine);
 
-            List<string> filteredLines =
-                lines.Skip(startingLineIndex + 1).Where(line => line.Contains(_settings.lineBeginning)).ToList();
+            List<string> filteredLines = lines.Skip(startingLineIndex + 1)
+                .Where(line => line.Contains(_settings.lineBeginning))
+                .Select(line =>
+                {
+                    int idx = line.IndexOf(_settings.lineBeginning, StringComparison.Ordinal);
+                    return idx >= 0 ? line.Substring(idx).Trim() : line.Trim();
+                }).ToList();
 
             CleanupLogFile(filteredLines);
             return filteredLines.ToArray();
