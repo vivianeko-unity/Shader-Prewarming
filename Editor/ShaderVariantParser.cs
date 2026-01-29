@@ -20,10 +20,19 @@ public static class ShaderVariantParser
         _settings = settings;
         GlobalKeywordsFoundInLog.Clear();
 
-        if (string.IsNullOrEmpty(_settings.logFilePath) || !File.Exists(_settings.logFilePath))
+        if (string.IsNullOrEmpty(_settings.logFilePath))
         {
-            Debug.LogError("ShadersLog file is missing or empty.");
+            Debug.LogError("ShadersLog file path is not set.");
             return null;
+        }
+
+        if (!File.Exists(_settings.logFilePath))
+        {
+            var directoryName = Path.GetDirectoryName(_settings.logFilePath);
+            if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
+                Directory.CreateDirectory(directoryName);
+
+            File.WriteAllText(_settings.logFilePath, _settings.startingLine + Environment.NewLine);
         }
 
         var allGlobalKeywords = new HashSet<string>(Shader.globalKeywords.Select(keyword => keyword.name));

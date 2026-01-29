@@ -33,6 +33,13 @@ public class StripShaderVariants : IPreprocessShaders
 
             if (ShouldStripVariant(shader, localKeywords))
             {
+                // var variantLog = $"Stripped: {shader.name}|" +
+                //               $"Graphics:{data[i].graphicsTier}|" +
+                //               $"Platform:{data[i].shaderCompilerPlatform}|BuildTarget:{data[i].buildTarget}|" +
+                //               $"{snippet.passType}|{snippet.passName}|{snippet.shaderType}|" +
+                //               $"{string.Join(" ", allKeywords)}\n";
+                //
+                // File.AppendAllText(ShaderVariantsProcessor.ReportPath, variantLog);
                 data.RemoveAt(i);
             }
             else
@@ -55,7 +62,9 @@ public class StripShaderVariants : IPreprocessShaders
 #else
         if (!_settings.strippingEnabled) return false;
 
-        if (ShaderVariantsProcessor.IgnoreShader(shader)) return false;
+        if (ShaderVariantsProcessor.IgnoreShader(shader, localKeywords)) return false;
+
+        if (ShaderVariantsProcessor.StripShader(shader)) return true;
 
         bool hasMatch = false;
         foreach (var keywordData in _settings.localKeywords)

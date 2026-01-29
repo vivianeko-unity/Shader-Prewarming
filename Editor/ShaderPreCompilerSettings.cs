@@ -23,8 +23,8 @@ public class ShaderPreCompilerSettings : ScriptableObject
     [Tooltip("If adding variants manually to warmup")]
     public List<ShaderVariantData> manualShaderVariantsData;
 
-    [FormerlySerializedAs("WarmupSvcPath")] [Tooltip("The shader variant collection to be pre-compiled.")]
-    public string warmupSvcPath = "Assets/Shaders/ShaderVariantsToPreCompile.shadervariants";
+    [Tooltip("The shader variant collection to be pre-compiled.")]
+    private const string WarmupSvcPath = "Assets/Shaders/ShaderVariantsToPreCompile.shadervariants";
     public ShaderVariantCollection warmupSvc;
 
     [Header("Shader variants stripping settings.")]
@@ -34,6 +34,6 @@ public class ShaderPreCompilerSettings : ScriptableObject
 
     private void OnEnable()
     {
-        warmupSvc = AssetDatabase.LoadAssetAtPath<ShaderVariantCollection>(warmupSvcPath);
+        warmupSvc = AssetDatabase.LoadAssetAtPath<ShaderVariantCollection>(WarmupSvcPath);
     }
 }
