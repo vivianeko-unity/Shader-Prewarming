@@ -13,6 +13,7 @@ using UnityEngine.Rendering;
 /// </summary>
 public static class ShaderVariantParser
 {
+    private const string EndLine = "// new log entries below this line in case keeping the previous logs is necessary";
     private static ShaderPreCompilerSettings _settings;
     private static readonly HashSet<string> GlobalKeywordsFoundInLog = new();
     public static List<ShaderVariantData> ParseShaderVariantsFromFile(ShaderPreCompilerSettings settings)
@@ -40,7 +41,7 @@ public static class ShaderVariantParser
         List<ShaderVariantData> variantDataList = new();
         Dictionary<string, ShaderVariantData> variantOccurrences = new();
 
-        string[] filteredLines = PreprocessLogFile();
+        List<string> filteredLines = PreprocessAndCleanupLogFile();
         foreach (string line in filteredLines)
         {
             CollectGlobalKeywordsFromLine(line, allGlobalKeywords);
@@ -68,23 +69,70 @@ public static class ShaderVariantParser
         return variantDataList;
     }
 
-    private static string[] PreprocessLogFile()
+    private static List<string> PreprocessAndCleanupLogFile()
     {
         try
         {
             string[] lines = File.ReadAllLines(_settings.logFilePath);
             int startingLineIndex = Array.FindIndex(lines, line => line == _settings.startingLine);
+            bool hasStartingLine = startingLineIndex >= 0;
+            List<string> afterStart = hasStartingLine ? lines.Skip(startingLineIndex + 1).ToList() : lines.ToList();
 
-            List<string> filteredLines = lines.Skip(startingLineIndex + 1)
-                .Where(line => line.Contains(_settings.lineBeginning))
-                .Select(line =>
+            var markerIndex = afterStart.FindLastIndex(line => line.Trim() == EndLine);
+            List<string> oldRaw, newRaw;
+
+            if (markerIndex >= 0)
+            {
+                oldRaw = afterStart.Take(markerIndex).ToList();
+                newRaw = afterStart.Skip(markerIndex + 1).ToList();
+            }
+            else
+            {
+                oldRaw = afterStart;
+                newRaw = null;
+            }
+
+            List<string> oldSection = oldRaw.Where(line => line.Contains(_settings.lineBeginning))
+                .Select(line => { int index = line.IndexOf(_settings.lineBeginning, StringComparison.Ordinal);
+                    return index >= 0 ? line.Substring(index).Trim() : line.Trim(); }).ToList();
+
+            List<string> finalVariantLines;
+
+            if (markerIndex < 0 || newRaw == null)
+            {
+                finalVariantLines = oldSection;
+            }
+            else
+            {
+                var newSection = newRaw.Where(line => line.Contains(_settings.lineBeginning))
+                    .Select(line => { int index = line.IndexOf(_settings.lineBeginning, StringComparison.Ordinal);
+                        return index >= 0 ? line.Substring(index).Trim() : line.Trim(); }).ToList();
+
+                var newKeys = new HashSet<string>();
+                foreach (var line in newSection)
                 {
-                    int idx = line.IndexOf(_settings.lineBeginning, StringComparison.Ordinal);
-                    return idx >= 0 ? line.Substring(idx).Trim() : line.Trim();
-                }).ToList();
+                    var variantData = ParseLine(line);
+                    if (variantData == null) continue;
+                    newKeys.Add(GenerateUniqueKey(variantData));
+                }
 
-            CleanupLogFile(filteredLines);
-            return filteredLines.ToArray();
+                var cleanedOld = new List<string>(oldSection.Count);
+                foreach (var line in oldSection)
+                {
+                    var variantData = ParseLine(line);
+                    if (variantData == null) continue;
+
+                    var key = GenerateUniqueKey(variantData);
+                    if (!newKeys.Contains(key)) cleanedOld.Add(line);
+                }
+
+                finalVariantLines = new List<string>(newSection.Count + cleanedOld.Count);
+                finalVariantLines.AddRange(cleanedOld);
+                finalVariantLines.AddRange(newSection);
+            }
+
+            CleanupLogFile(finalVariantLines);
+            return finalVariantLines;
         }
         catch (Exception ex)
         {
@@ -98,6 +146,9 @@ public static class ShaderVariantParser
         StringBuilder sb = new ();
         sb.AppendLine(_settings.startingLine);
         sb.Append(string.Join(Environment.NewLine, filteredLines));
+
+        if (filteredLines.Count > 0) sb.AppendLine();
+        sb.AppendLine(EndLine);
 
         string newContent = sb.ToString();
         string existingContent = File.ReadAllText(_settings.logFilePath);
