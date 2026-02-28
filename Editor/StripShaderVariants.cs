@@ -21,34 +21,27 @@ public class StripShaderVariants : IPreprocessShaders
         if (!_initialized)
         {
             File.SetAttributes(ShaderVariantsProcessor.ReportPath, FileAttributes.Normal);
-            _settings = ShaderVariantsProcessor.GetSettings();
+            _settings = ShaderPreCompilerSettings.Instance;
             _globalKeywords = new HashSet<string>(_settings.enabledGlobalKeywords ?? new List<string>());
             _initialized = true;
         }
 
-        for (var i = data.Count - 1; i >= 0; i--)
+        for (int i = data.Count - 1; i >= 0; i--)
         {
             string[] allKeywords = data[i].shaderKeywordSet.GetShaderKeywords().Select(k => k.name).ToArray();
             string[] localKeywords = allKeywords.Where(k => !_globalKeywords.Contains(k)).ToArray();
 
             if (ShouldStripVariant(shader, localKeywords))
             {
-                // var variantLog = $"Stripped: {shader.name}|" +
-                //               $"Graphics:{data[i].graphicsTier}|" +
-                //               $"Platform:{data[i].shaderCompilerPlatform}|BuildTarget:{data[i].buildTarget}|" +
-                //               $"{snippet.passType}|{snippet.passName}|{snippet.shaderType}|" +
-                //               $"{string.Join(" ", allKeywords)}\n";
-                //
-                // File.AppendAllText(ShaderVariantsProcessor.ReportPath, variantLog);
                 data.RemoveAt(i);
             }
             else
             {
-                var variantLog = $"Compiled: {shader.name}|" +
-                                 $"Graphics:{data[i].graphicsTier}|" +
-                                 $"Platform:{data[i].shaderCompilerPlatform}|BuildTarget:{data[i].buildTarget}|" +
-                                 $"{snippet.passType}|{snippet.passName}|{snippet.shaderType}|" +
-                                 $"{string.Join(" ", allKeywords)}\n";
+                string variantLog = $"Compiled: {shader.name}|" +
+                                    $"Graphics:{data[i].graphicsTier}|" +
+                                    $"Platform:{data[i].shaderCompilerPlatform}|BuildTarget:{data[i].buildTarget}|" +
+                                    $"{snippet.passType}|{snippet.passName}|{snippet.shaderType}|" +
+                                    $"{string.Join(" ", allKeywords)}\n";
 
                 File.AppendAllText(ShaderVariantsProcessor.ReportPath, variantLog);
             }
@@ -66,8 +59,8 @@ public class StripShaderVariants : IPreprocessShaders
 
         if (ShaderVariantsProcessor.StripShader(shader)) return true;
 
-        bool hasMatch = false;
-        foreach (var keywordData in _settings.localKeywords)
+        var hasMatch = false;
+        foreach (ShaderKeywordsData keywordData in _settings.localKeywords)
         {
             if (keywordData.shader != shader) continue;
             if (new HashSet<string>(keywordData.keywords).SetEquals(new HashSet<string>(localKeywords)))

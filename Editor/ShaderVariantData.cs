@@ -12,7 +12,6 @@ public class ShaderVariantData
     public int uploadCount;
 }
 
-
 [Serializable]
 public class ShaderKeywordsData
 {

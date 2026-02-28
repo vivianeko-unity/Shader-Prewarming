@@ -1,10 +1,13 @@
 {
-  "name": "com.shaderprewarming.shaderprewarming",
+  "name": "com.viviane_kmati.shaderprewarming",
   "version": "0.0.1",
   "displayName": "Shader Prewarming",
   "description": "Creates and maintain the list of variants to prewarm",
   "unity": "2022.3",
   "repository": "https://github.com/vivianeko-unity/Shader-Prewarming",
-  "author": { "name": "Viviane", "email": "viviane.kmati@unity3d.com", "url": "https://www.unity3d.com"
+  "author": {
+    "name": "Viviane",
+    "url": "https://www.unity3d.com",
+    "email": "viviane.kmati@unity3d.com"
   }
 }

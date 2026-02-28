@@ -16,26 +16,11 @@ public static class ShaderVariantParser
     private const string EndLine = "// new log entries below this line in case keeping the previous logs is necessary";
     private static ShaderPreCompilerSettings _settings;
     private static readonly HashSet<string> GlobalKeywordsFoundInLog = new();
-    public static List<ShaderVariantData> ParseShaderVariantsFromFile(ShaderPreCompilerSettings settings)
+
+    public static List<ShaderVariantData> ParseShaderVariantsFromFile()
     {
-        _settings = settings;
+        _settings = ShaderPreCompilerSettings.Instance;
         GlobalKeywordsFoundInLog.Clear();
-
-        if (string.IsNullOrEmpty(_settings.logFilePath))
-        {
-            Debug.LogError("ShadersLog file path is not set.");
-            return null;
-        }
-
-        if (!File.Exists(_settings.logFilePath))
-        {
-            var directoryName = Path.GetDirectoryName(_settings.logFilePath);
-            if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
-                Directory.CreateDirectory(directoryName);
-
-            File.WriteAllText(_settings.logFilePath, _settings.startingLine + Environment.NewLine);
-        }
-
         var allGlobalKeywords = new HashSet<string>(Shader.globalKeywords.Select(keyword => keyword.name));
 
         List<ShaderVariantData> variantDataList = new();
@@ -47,10 +32,7 @@ public static class ShaderVariantParser
             CollectGlobalKeywordsFromLine(line, allGlobalKeywords);
 
             ShaderVariantData variantData = ParseLine(line);
-            if (variantData == null)
-            {
-                continue;
-            }
+            if (variantData == null) continue;
 
             string uniqueKey = GenerateUniqueKey(variantData);
             if (variantOccurrences.TryGetValue(uniqueKey, out ShaderVariantData existingVariantData))
@@ -78,7 +60,7 @@ public static class ShaderVariantParser
             bool hasStartingLine = startingLineIndex >= 0;
             List<string> afterStart = hasStartingLine ? lines.Skip(startingLineIndex + 1).ToList() : lines.ToList();
 
-            var markerIndex = afterStart.FindLastIndex(line => line.Trim() == EndLine);
+            int markerIndex = afterStart.FindLastIndex(line => line.Trim() == EndLine);
             List<string> oldRaw, newRaw;
 
             if (markerIndex >= 0)
@@ -93,8 +75,10 @@ public static class ShaderVariantParser
             }
 
             List<string> oldSection = oldRaw.Where(line => line.Contains(_settings.lineBeginning))
-                .Select(line => { int index = line.IndexOf(_settings.lineBeginning, StringComparison.Ordinal);
-                    return index >= 0 ? line.Substring(index).Trim() : line.Trim(); }).ToList();
+                .Select(line => {
+                    int index = line.IndexOf(_settings.lineBeginning, StringComparison.Ordinal);
+                    return index >= 0 ? line.Substring(index).Trim() : line.Trim();
+                }).ToList();
 
             List<string> finalVariantLines;
 
@@ -104,25 +88,27 @@ public static class ShaderVariantParser
             }
             else
             {
-                var newSection = newRaw.Where(line => line.Contains(_settings.lineBeginning))
-                    .Select(line => { int index = line.IndexOf(_settings.lineBeginning, StringComparison.Ordinal);
-                        return index >= 0 ? line.Substring(index).Trim() : line.Trim(); }).ToList();
+                List<string> newSection = newRaw.Where(line => line.Contains(_settings.lineBeginning))
+                    .Select(line => {
+                        int index = line.IndexOf(_settings.lineBeginning, StringComparison.Ordinal);
+                        return index >= 0 ? line.Substring(index).Trim() : line.Trim();
+                    }).ToList();
 
                 var newKeys = new HashSet<string>();
-                foreach (var line in newSection)
+                foreach (string line in newSection)
                 {
-                    var variantData = ParseLine(line);
+                    ShaderVariantData variantData = ParseLine(line);
                     if (variantData == null) continue;
                     newKeys.Add(GenerateUniqueKey(variantData));
                 }
 
                 var cleanedOld = new List<string>(oldSection.Count);
-                foreach (var line in oldSection)
+                foreach (string line in oldSection)
                 {
-                    var variantData = ParseLine(line);
+                    ShaderVariantData variantData = ParseLine(line);
                     if (variantData == null) continue;
 
-                    var key = GenerateUniqueKey(variantData);
+                    string key = GenerateUniqueKey(variantData);
                     if (!newKeys.Contains(key)) cleanedOld.Add(line);
                 }
 
@@ -143,19 +129,19 @@ public static class ShaderVariantParser
 
     private static void CleanupLogFile(List<string> filteredLines)
     {
-        StringBuilder sb = new ();
+        StringBuilder sb = new();
         sb.AppendLine(_settings.startingLine);
         sb.Append(string.Join(Environment.NewLine, filteredLines));
 
         if (filteredLines.Count > 0) sb.AppendLine();
         sb.AppendLine(EndLine);
 
-        string newContent = sb.ToString();
+        var newContent = sb.ToString();
         string existingContent = File.ReadAllText(_settings.logFilePath);
         if (existingContent == newContent) return;
 
         File.SetAttributes(_settings.logFilePath, FileAttributes.Normal);
-        // if perfoce make sure to checkout file _settings.logFilePath here
+        // if perforce make sure to check out file _settings.logFilePath here
         File.WriteAllText(_settings.logFilePath, newContent);
     }
 
@@ -198,6 +184,7 @@ public static class ShaderVariantParser
                 // No time field
                 keywords = line.Substring(keywordsStart).Trim();
             }
+
             string[] keywordArray = keywords == "<no keywords>" ? Array.Empty<string>() : keywords.Split(' ');
 
             // extract upload time
@@ -228,11 +215,11 @@ public static class ShaderVariantParser
 
     private static (PassType passType, string lightMode) GetPassType(Shader shader, string passName)
     {
-        string lightMode = "";
+        var lightMode = "";
         ShaderData shaderData = ShaderUtil.GetShaderData(shader);
         ShaderData.Subshader subshader = shaderData.ActiveSubshader;
 
-        for (int i = 0; i < subshader.PassCount; i++)
+        for (var i = 0; i < subshader.PassCount; i++)
         {
             ShaderData.Pass pass = subshader.GetPass(i);
             if (pass.Name == passName)
@@ -248,7 +235,7 @@ public static class ShaderVariantParser
             "SRPDEFAULTUNLIT" => PassType.ScriptableRenderPipelineDefaultUnlit,
             "UNIVERSALFORWARD" => PassType.ScriptableRenderPipeline,
             "SHADOWCASTER" => PassType.ShadowCaster,
-            "Meta"  => PassType.Meta,
+            "Meta" => PassType.Meta,
             "" => PassType.Normal,
             _ => PassType.ScriptableRenderPipeline
         };
@@ -256,11 +243,9 @@ public static class ShaderVariantParser
         return (passType, lightMode);
     }
 
-    private static string GenerateUniqueKey(ShaderVariantData shaderVariantData)
-    {
-        return $"{shaderVariantData.shader.name}|" + $"{shaderVariantData.passType.ToString()}|" +
-               $"{string.Join(" ", shaderVariantData.keywords)}";
-    }
+    private static string GenerateUniqueKey(ShaderVariantData shaderVariantData) =>
+        $"{shaderVariantData.shader.name}|" + $"{shaderVariantData.passType.ToString()}|" +
+        $"{string.Join(" ", shaderVariantData.keywords)}";
 
     private static void CollectGlobalKeywordsFromLine(string line, HashSet<string> allGlobalKeywords)
     {
@@ -288,10 +273,7 @@ public static class ShaderVariantParser
             foreach (string keyword in keywordArray)
             {
                 string cleanKeyword = keyword.Trim();
-                if (allGlobalKeywords.Contains(cleanKeyword))
-                {
-                    GlobalKeywordsFoundInLog.Add(cleanKeyword);
-                }
+                if (allGlobalKeywords.Contains(cleanKeyword)) GlobalKeywordsFoundInLog.Add(cleanKeyword);
             }
         }
         catch (Exception ex)
@@ -307,13 +289,10 @@ public static class ShaderVariantParser
         foreach (string globalKeyword in GlobalKeywordsFoundInLog)
         {
             if (!_settings.enabledGlobalKeywords.Contains(globalKeyword))
-            {
                 _settings.enabledGlobalKeywords.Add(globalKeyword);
-            }
         }
 
         EditorUtility.SetDirty(_settings);
         AssetDatabase.SaveAssets();
     }
-
 }

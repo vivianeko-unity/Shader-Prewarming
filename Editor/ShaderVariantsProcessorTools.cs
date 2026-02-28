@@ -8,10 +8,10 @@ using UnityEngine.Rendering;
 /// Example for processing shader variants and integrating with build pipeline
 /// Can be added to any existing build scripts instead.
 /// </summary>
-
 public class ShaderVariantsProcessorTools : IPreprocessBuildWithReport
 {
     public int callbackOrder => 0;
+
     public void OnPreprocessBuild(BuildReport report)
     {
         try

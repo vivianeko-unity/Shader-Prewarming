@@ -9,7 +9,7 @@ using UnityEngine;
 public class ShaderPreCompiler : MonoBehaviour
 {
     [SerializeField] private ShaderVariantCollection svc;
-    
+
     private void Start()
     {
 #if DEBUG_SHADER_PRECOMPILER
@@ -23,21 +23,22 @@ public class ShaderPreCompiler : MonoBehaviour
     private void LoadSvc()
     {
         // if addressables load the svc here
-        
+
         if (!svc)
         {
             Debug.LogError("ShaderVariantsToPreCompile FAILED to load");
             return;
         }
+
         WarmupSvc();
     }
-    
+
     private void WarmupSvc()
     {
         Debug.Log("Starting to warm up ShaderVariantCollection");
-        
+
         svc.WarmUp();
-        
+
         Debug.Log($"ShaderVariantCollection is warmed up: {svc.isWarmedUp}, " +
                   $"warmed up: {svc.warmedUpVariantCount} variants out of {svc.variantCount}");
     }
