@@ -12,7 +12,7 @@ public class ShaderPreCompiler : MonoBehaviour
 
     private void Start()
     {
-#if DEBUG_SHADER_PRECOMPILER
+#if DEBUG_SHADER_VARIANTS
         Debug.Log("ShaderPreCompiler: Disabled, debugging variants to pre-compile.");
 #else
         // if addressables wait for shaders bundle to be downloaded first

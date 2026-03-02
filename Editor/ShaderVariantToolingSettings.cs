@@ -10,8 +10,9 @@ public class ShaderVariantToolingSettings : ScriptableObject
     public static ShaderVariantToolingSettings Instance => LoadOrCreate();
 
     [Header("Log Parsing")]
-    [Tooltip("Path to ShadersLog.txt file.")]
-    public string logFilePath = "Assets/Editor/ShadersLog.txt";
+    [Tooltip("ShadersLog.txt file.")]
+    public TextAsset logFile;
+    public string LogFilePath => logFile ? AssetDatabase.GetAssetPath(logFile) : "Assets/Editor/ShadersLog.txt";
 
     [Tooltip("The beginning part of each line when a shader variant is uploaded to the gpu.")]
     public string lineBeginning = "Uploaded shader variant to the GPU driver:";
@@ -27,15 +28,18 @@ public class ShaderVariantToolingSettings : ScriptableObject
     [Tooltip("The line when parsing should start so we only pre-compile variants uploaded after the loading screen")]
     public string startingLine = "ShaderPreCompiler: Disabled, debugging variants to pre-compile.";
 
+    [Tooltip("The shader variant collection to be pre-compiled.")]
+    public ShaderVariantCollection warmupSvc;
+    private string WarmupSvcPath => warmupSvc ? AssetDatabase.GetAssetPath(warmupSvc) : "Assets/Shaders/ShaderVariantsToPreCompile.shadervariants";
+
     [Tooltip("If adding variants manually to warmup")]
     public List<ShaderVariantData> manualShaderVariantsData;
 
-    [Tooltip("The shader variant collection to be pre-compiled.")]
-    private const string WarmupSvcPath = "Assets/Shaders/ShaderVariantsToPreCompile.shadervariants";
+    [Header("Stripping")]
+    [Tooltip(
+        "When enabled, preserves manually added keyword variants. When disabled, resets to only variants found in the current log and project materials.")]
+    public bool keepExistingLocalKeywords = true;
 
-    public ShaderVariantCollection warmupSvc;
-
-    [Header("Shader variants stripping settings.")]
     public bool strippingEnabled = true;
 
     [Space] public List<string> enabledGlobalKeywords;
@@ -60,18 +64,28 @@ public class ShaderVariantToolingSettings : ScriptableObject
         _instance = CreateInstance<ShaderVariantToolingSettings>();
         AssetDatabase.CreateAsset(_instance, "Assets/Editor/ShaderVariantToolingSettings.asset");
         AssetDatabase.SaveAssets();
-        
+
         _instance.ValidateLogFile();
         _instance.ValidateWarmupSvc();
 
         return _instance;
     }
+    
+    private void Reset()
+    {
+        if (!_instance) return;
+        _instance.ValidateLogFile();
+        _instance.ValidateWarmupSvc();
+    }
 
     private void ValidateLogFile()
     {
-        if (File.Exists(logFilePath)) return;
-        File.WriteAllText(logFilePath, startingLine + Environment.NewLine);
+        logFile = AssetDatabase.LoadAssetAtPath<TextAsset>(LogFilePath);
+        if (logFile) return;
+
+        File.WriteAllText(LogFilePath, startingLine + Environment.NewLine);
         AssetDatabase.Refresh();
+        logFile = AssetDatabase.LoadAssetAtPath<TextAsset>(LogFilePath);
     }
 
     private void ValidateWarmupSvc()

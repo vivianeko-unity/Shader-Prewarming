@@ -16,29 +16,8 @@ public class ShaderVariantsProcessor
     private static ShaderVariantToolingSettings _settings;
     private static List<ShaderVariantData> _variantWarmupDataList = new();
 
-    [MenuItem("Tools/Shader Optimization/Add EnabledGlobalKeywords From Scenes")]
-    public static void GetAllEnabledGlobalKeywords()
-    {
-        Setup();
-        foreach (GlobalKeyword keyword in Shader.enabledGlobalKeywords)
-        {
-            if (_settings.enabledGlobalKeywords.Contains(keyword.name)) continue;
-            _settings.enabledGlobalKeywords.Add(keyword.name);
-        }
-
-        EditorUtility.SetDirty(_settings);
-        AssetDatabase.SaveAssets();
-    }
-
-    [MenuItem("Tools/Shader Optimization/Cleanup current LocalKeywords")]
-    public static void CleanupCurrentLocalKeywords()
-    {
-        Setup();
-        UpdateVariantListToStrip(false);
-    }
-
     // This should be called during builds
-    [MenuItem("Tools/Shader Optimization/Shader Variants Processor")]
+    [MenuItem("Tools/Shader Variants Tools/Shader Variants Processor")]
     public static void ProcessShaderVariants()
     {
         Debug.Log("Processing shader variants...");
@@ -47,16 +26,19 @@ public class ShaderVariantsProcessor
         UpdateVariantListToPreCompile();
         Debug.Log("Variant list to pre-compile updated");
 
-        UpdateVariantListToStrip(true);
+        UpdateVariantListToStrip();
         Debug.Log("Variant list to strip updated");
 
         Debug.Log("Shader variant processing complete");
+        EditorUtility.FocusProjectWindow();
+        Selection.activeObject = _settings;
+        EditorGUIUtility.PingObject(_settings);
     }
 
     private static void Setup()
     {
         _settings = ShaderVariantToolingSettings.Instance;
-        
+
         string directoryName = Path.GetDirectoryName(ReportPath);
         if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
             Directory.CreateDirectory(directoryName);
@@ -118,9 +100,14 @@ public class ShaderVariantsProcessor
         AssetDatabase.SaveAssets();
     }
 
-    private static void UpdateVariantListToStrip(bool keepExisting = false)
+    private static void UpdateVariantListToStrip()
     {
-        if (!_settings.strippingEnabled) return;
+        foreach (GlobalKeyword keyword in Shader.enabledGlobalKeywords)
+        {
+            if (_settings.enabledGlobalKeywords.Contains(keyword.name)) continue;
+            _settings.enabledGlobalKeywords.Add(keyword.name);
+        }
+
         _settings.localKeywords ??= new List<ShaderKeywordsData>();
 
         var uniqueVariants = new HashSet<string>();
@@ -153,7 +140,8 @@ public class ShaderVariantsProcessor
 
         foreach (ShaderKeywordsData existing in _settings.localKeywords)
         {
-            AddKeywordsUnique(variantList, uniqueVariants, existing.shader, existing.keywords, keepExisting);
+            AddKeywordsUnique(variantList, uniqueVariants, existing.shader, existing.keywords,
+                              _settings.keepExistingLocalKeywords);
         }
 
         _settings.localKeywords = variantList
@@ -176,21 +164,15 @@ public class ShaderVariantsProcessor
 
         var uniqueKey = $"{shader.name}|{string.Join("|", localKeywords)}";
         if (uniqueVariants.Contains(uniqueKey)) return;
-        switch (keepExisting)
+        if (keepExisting == false)
         {
-            case null:
-                uniqueVariants.Add(uniqueKey);
-                variantList.Add(new ShaderKeywordsData { shader = shader, keywords = localKeywords });
-                break;
-            case true:
-                uniqueVariants.Add(uniqueKey);
-                variantList.Add(new ShaderKeywordsData { shader = shader, keywords = localKeywords });
-                Debug.Log($"Kept existing variant: {uniqueKey}");
-                break;
-            case false:
-                Debug.Log($"Removed existing variant: {uniqueKey}");
-                break;
+            Debug.Log($"Removed existing variant: {uniqueKey}");
+            return;
         }
+
+        uniqueVariants.Add(uniqueKey);
+        variantList.Add(new ShaderKeywordsData { shader = shader, keywords = localKeywords });
+        if (keepExisting == true) Debug.Log($"Kept existing variant: {uniqueKey}");
     }
 
     private static readonly string[] IgnoredShaders =
@@ -208,6 +190,7 @@ public class ShaderVariantsProcessor
 
     private static readonly string[] StripShaders =
     {
+        // Add shaders to strip completely, regardless of keywords or usage in materials.
         //"Universal Render Pipeline/Nature/SpeedTree8_PBRLit",
         //"Universal Render Pipeline/Nature/SpeedTree9_URP"
     };

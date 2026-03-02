@@ -17,7 +17,7 @@ This helps optimize shaders by:
 
 ## How It Works
 1. **Maintenance**:
-   - Enable `DEBUG_SHADER_PRECOMPILER` and make a development build
+   - Enable `DEBUG_SHADER_VARIANTS` and make a development build
    - Run the game to log shader compilations without prewarming (this will avoid adding variants that are not needed anymore)
    - Up-to-date variants are logged to player log file
    - Copy the content into the shaders log file (it will automatically clean and analyze the file)
@@ -40,7 +40,7 @@ This helps optimize shaders by:
    - ShaderPreCompiler loads and warms up variants at startup
 
 ## Debug Options
-- DEBUG_SHADER_PRECOMPILER - Disables prewarming to identify currently needed variants
+- DEBUG_SHADER_VARIANTS - Disables stripping and prewarming to identify currently needed variants
    - Use this during Maintenance phase
    - All variants will be compiled and logged
    - No variants will be stripped

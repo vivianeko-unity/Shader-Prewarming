@@ -55,7 +55,7 @@ public static class ShaderVariantParser
     {
         try
         {
-            string[] lines = File.ReadAllLines(_settings.logFilePath);
+            string[] lines = File.ReadAllLines(_settings.LogFilePath);
             int startingLineIndex = Array.FindIndex(lines, line => line == _settings.startingLine);
             bool hasStartingLine = startingLineIndex >= 0;
             List<string> afterStart = hasStartingLine ? lines.Skip(startingLineIndex + 1).ToList() : lines.ToList();
@@ -137,12 +137,12 @@ public static class ShaderVariantParser
         sb.AppendLine(EndLine);
 
         var newContent = sb.ToString();
-        string existingContent = File.ReadAllText(_settings.logFilePath);
+        string existingContent = File.ReadAllText(_settings.LogFilePath);
         if (existingContent == newContent) return;
 
-        File.SetAttributes(_settings.logFilePath, FileAttributes.Normal);
+        File.SetAttributes(_settings.LogFilePath, FileAttributes.Normal);
         // if perforce make sure to check out file _settings.logFilePath here
-        File.WriteAllText(_settings.logFilePath, newContent);
+        File.WriteAllText(_settings.LogFilePath, newContent);
     }
 
     private static ShaderVariantData ParseLine(string line)

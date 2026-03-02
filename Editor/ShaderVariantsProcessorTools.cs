@@ -16,7 +16,7 @@ public class ShaderVariantsProcessorTools : IPreprocessBuildWithReport
     {
         try
         {
-#if DEVELOPMENT_BUILD || DEBUG_SHADER_PRECOMPILER
+#if DEVELOPMENT_BUILD || DEBUG_SHADER_VARIANTS
             GraphicsSettings.logWhenShaderIsCompiled = true;
 #endif
             ShaderVariantsProcessor.ProcessShaderVariants();

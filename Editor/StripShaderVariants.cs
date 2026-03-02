@@ -50,7 +50,7 @@ public class StripShaderVariants : IPreprocessShaders
 
     private static bool ShouldStripVariant(Shader shader, string[] localKeywords)
     {
-#if DEBUG_SHADER_PRECOMPILER
+#if DEBUG_SHADER_VARIANTS
         return false;
 #else
         if (!_settings.strippingEnabled) return false;
