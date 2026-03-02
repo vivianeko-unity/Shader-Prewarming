@@ -13,7 +13,7 @@ using UnityEngine.Rendering;
 public class ShaderVariantsProcessor
 {
     public static readonly string ReportPath = Path.GetFullPath("Artifact/ShaderVariantsCompiled.txt");
-    private static ShaderPreCompilerSettings _settings;
+    private static ShaderVariantToolingSettings _settings;
     private static List<ShaderVariantData> _variantWarmupDataList = new();
 
     [MenuItem("Tools/Shader Optimization/Add EnabledGlobalKeywords From Scenes")]
@@ -55,7 +55,7 @@ public class ShaderVariantsProcessor
 
     private static void Setup()
     {
-        _settings = ShaderPreCompilerSettings.Instance;
+        _settings = ShaderVariantToolingSettings.Instance;
         
         string directoryName = Path.GetDirectoryName(ReportPath);
         if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))

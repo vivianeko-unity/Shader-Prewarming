@@ -14,12 +14,12 @@ using UnityEngine.Rendering;
 public static class ShaderVariantParser
 {
     private const string EndLine = "// new log entries below this line in case keeping the previous logs is necessary";
-    private static ShaderPreCompilerSettings _settings;
+    private static ShaderVariantToolingSettings _settings;
     private static readonly HashSet<string> GlobalKeywordsFoundInLog = new();
 
     public static List<ShaderVariantData> ParseShaderVariantsFromFile()
     {
-        _settings = ShaderPreCompilerSettings.Instance;
+        _settings = ShaderVariantToolingSettings.Instance;
         GlobalKeywordsFoundInLog.Clear();
         var allGlobalKeywords = new HashSet<string>(Shader.globalKeywords.Select(keyword => keyword.name));
 

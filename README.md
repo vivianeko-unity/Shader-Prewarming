@@ -1,4 +1,4 @@
-# Shader-Otimization
+# Shader Variants Tooling
 Generates and maintains the ShaderVariantCollection to pre-warm and strips unused variants at build time
 
 ## Overview

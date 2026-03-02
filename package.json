@@ -1,10 +1,10 @@
 {
-  "name": "com.viviane_kmati.shaderprewarming",
+  "name": "com.viviane_kmati.shadervariantstooling",
   "version": "0.0.1",
-  "displayName": "Shader Prewarming",
+  "displayName": "Shader Variants Tooling",
   "description": "Creates and maintain the list of variants to prewarm",
   "unity": "2022.3",
-  "repository": "https://github.com/vivianeko-unity/Shader-Prewarming",
+  "repository": "https://github.com/vivianeko-unity/ShaderVariantsTooling",
   "author": {
     "name": "Viviane",
     "url": "https://www.unity3d.com",

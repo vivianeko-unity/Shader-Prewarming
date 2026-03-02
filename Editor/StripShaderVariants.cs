@@ -10,7 +10,7 @@ using UnityEngine;
 /// </summary>
 public class StripShaderVariants : IPreprocessShaders
 {
-    private static ShaderPreCompilerSettings _settings;
+    private static ShaderVariantToolingSettings _settings;
     private static HashSet<string> _globalKeywords;
     private static bool _initialized;
 
@@ -21,7 +21,7 @@ public class StripShaderVariants : IPreprocessShaders
         if (!_initialized)
         {
             File.SetAttributes(ShaderVariantsProcessor.ReportPath, FileAttributes.Normal);
-            _settings = ShaderPreCompilerSettings.Instance;
+            _settings = ShaderVariantToolingSettings.Instance;
             _globalKeywords = new HashSet<string>(_settings.enabledGlobalKeywords ?? new List<string>());
             _initialized = true;
         }

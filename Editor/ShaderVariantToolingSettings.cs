@@ -4,10 +4,10 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-public class ShaderPreCompilerSettings : ScriptableObject
+public class ShaderVariantToolingSettings : ScriptableObject
 {
-    private static ShaderPreCompilerSettings _instance;
-    public static ShaderPreCompilerSettings Instance => LoadOrCreate();
+    private static ShaderVariantToolingSettings _instance;
+    public static ShaderVariantToolingSettings Instance => LoadOrCreate();
 
     [Header("Log Parsing")]
     [Tooltip("Path to ShadersLog.txt file.")]
@@ -41,15 +41,15 @@ public class ShaderPreCompilerSettings : ScriptableObject
     [Space] public List<string> enabledGlobalKeywords;
     [Space] public List<ShaderKeywordsData> localKeywords;
 
-    private static ShaderPreCompilerSettings LoadOrCreate()
+    private static ShaderVariantToolingSettings LoadOrCreate()
     {
         if (_instance) return _instance;
 
-        string[] guids = AssetDatabase.FindAssets("t:ShaderPreCompilerSettings");
+        string[] guids = AssetDatabase.FindAssets("t:ShaderVariantToolingSettings");
         if (guids.Length > 0)
         {
             string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-            _instance = AssetDatabase.LoadAssetAtPath<ShaderPreCompilerSettings>(path);
+            _instance = AssetDatabase.LoadAssetAtPath<ShaderVariantToolingSettings>(path);
             return _instance;
         }
 
@@ -57,8 +57,8 @@ public class ShaderPreCompilerSettings : ScriptableObject
         if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
             Directory.CreateDirectory(directoryName);
 
-        _instance = CreateInstance<ShaderPreCompilerSettings>();
-        AssetDatabase.CreateAsset(_instance, "Assets/Editor/ShaderPreCompilerSettings.asset");
+        _instance = CreateInstance<ShaderVariantToolingSettings>();
+        AssetDatabase.CreateAsset(_instance, "Assets/Editor/ShaderVariantToolingSettings.asset");
         AssetDatabase.SaveAssets();
         
         _instance.ValidateLogFile();
