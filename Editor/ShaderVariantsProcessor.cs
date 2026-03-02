@@ -72,7 +72,8 @@ public class ShaderVariantsProcessor
                 continue;
             }
 
-            // Uncomment to only include Addressables shaders: If svc is in addressables, any shaders included will be addressables
+            // NOTE[Addressables]:
+            // Uncomment below to only include Addressables shaders If svc is in addressables, any shaders included will be addressables
 
             // var shaderPath = AssetDatabase.GetAssetPath(variantData.shader);
             // var shaderGuid = AssetDatabase.AssetPathToGUID(shaderPath);
@@ -190,7 +191,7 @@ public class ShaderVariantsProcessor
 
     private static readonly string[] StripShaders =
     {
-        // Add shaders to strip completely, regardless of keywords or usage in materials.
+        // Add shaders here to strip completely, regardless of keywords or usage in materials.
         //"Universal Render Pipeline/Nature/SpeedTree8_PBRLit",
         //"Universal Render Pipeline/Nature/SpeedTree9_URP"
     };

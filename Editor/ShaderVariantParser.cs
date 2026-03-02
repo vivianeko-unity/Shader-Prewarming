@@ -141,7 +141,8 @@ public static class ShaderVariantParser
         if (existingContent == newContent) return;
 
         File.SetAttributes(_settings.LogFilePath, FileAttributes.Normal);
-        // if perforce make sure to check out file _settings.logFilePath here
+        // NOTE[Perforce]:
+        // Check out file _settings.logFilePath first here
         File.WriteAllText(_settings.LogFilePath, newContent);
     }
 
@@ -181,7 +182,6 @@ public static class ShaderVariantParser
             }
             else
             {
-                // No time field
                 keywords = line.Substring(keywordsStart).Trim();
             }
 

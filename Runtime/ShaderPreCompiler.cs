@@ -15,14 +15,16 @@ public class ShaderPreCompiler : MonoBehaviour
 #if DEBUG_SHADER_VARIANTS
         Debug.Log("ShaderPreCompiler: Disabled, debugging variants to pre-compile.");
 #else
-        // if addressables wait for shaders bundle to be downloaded first
+        // NOTE[Addressables]:
+        // Wait for shaders bundle to be downloaded first here before
         LoadSvc();
 #endif
     }
 
     private void LoadSvc()
     {
-        // if addressables load the svc here
+        // NOTE[Addressables]:
+        // Load the svc from addressables here
 
         if (!svc)
         {
