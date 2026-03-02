@@ -8,7 +8,7 @@ This helps optimize shaders by:
 3. Collecting keyword combinations (global and local) from runtime logs and project materials
 4. Automatically generating an updated ShaderVariantCollection at build time
 5. Stripping unused shader variants during build to reduce build size and compilation time
-4. Pre-compiling the ShaderVariantCollection
+6. Pre-compiling the ShaderVariantCollection
 
 ## Setup or 1st time run
 1. Configure `ShaderPreCompilerSettings` asset if needed (default settings should work for most cases)
@@ -22,7 +22,7 @@ This helps optimize shaders by:
    - Up-to-date variants are logged to player log file
    - Copy the content into the shaders log file (it will automatically clean and analyze the file)
 2. **Processing Phase**:
-   - Analyzes and re-generate the updated ShaderVariantCollection on the next build (manual option to update the svc if needed: `Tools/Shader Optimization/Shader Variants Processor`)
+   - Analyzes and re-generate the updated ShaderVariantCollection on the next build (manual option to update the svc if needed: `Tools/Shader Variants Tools/Shader Variants Processor`)
       - Parses the log file:
          - Extracts shader names, pass types, keywords, and upload times
          - Identifies and collects global keywords used at runtime
@@ -47,7 +47,6 @@ This helps optimize shaders by:
 
 ## Tools Menu
 - `Tools/Shader Optimization/Shader Variants Processor`: Manually process shader variants and update collections
-- `Tools/Shader Optimization/Add EnabledGlobalKeywords From Scenes`: Collect global keywords from currently loaded scenes if necessary
 
 ## Notes
 - **Important**: All shaders in the SVC must be loaded before loading the SVC itself. Otherwise this will cause Unity to duplicate the shaders in the build and pre-warm incorrect versions.
