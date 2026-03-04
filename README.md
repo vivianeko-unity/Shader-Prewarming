@@ -1,5 +1,5 @@
 # Shader Variants Tooling
-Generates and maintains the ShaderVariantCollection to pre-warm and strips unused variants at build time
+Generates and maintains ShaderVariantCollections and GraphicsStateCollections to pre-warm, and strips unused variants at build time.
 
 ## Overview
 This helps optimize shaders by:
@@ -8,46 +8,64 @@ This helps optimize shaders by:
 3. Collecting keyword combinations (global and local) from runtime logs and project materials
 4. Automatically generating an updated ShaderVariantCollection at build time
 5. Stripping unused shader variants during build to reduce build size and compilation time
-6. Pre-compiling the ShaderVariantCollection
+6. Pre-warming the ShaderVariantCollection at runtime
+7. Tracing and pre-warming GraphicsStateCollections (PSO caching) at runtime
 
-## Setup or 1st time run
-1. Configure `ShaderPreCompilerSettings` asset if needed (default settings should work for most cases)
-2. Run the Maintenance phase to get a shaders log and populate the ShaderVariantCollection at build time
-3. Add the `ShaderPreCompiler` component to a GameObject
+## Setup
+1. A `ShaderVariantToolingSettings` asset is auto-created in `Assets/Editor/` on first use
+2. Add the `ShaderPreCompiler` component to a GameObject for SVC warmup and shader variant log collection
+3. Add the `GraphicsStateCollectionTrace` component to a GameObject for GSC tracing and warmup
+4. Run the Maintenance phase to collect shader variant data
 
 ## How It Works
-1. **Maintenance**:
-   - Enable `DEBUG_SHADER_VARIANTS` and make a development build
-   - Run the game to log shader compilations without prewarming (this will avoid adding variants that are not needed anymore)
-   - Up-to-date variants are logged to player log file
-   - Copy the content into the shaders log file (it will automatically clean and analyze the file)
+
+### ShaderVariantCollection (SVC) Workflow
+1. **Maintenance (Collecting)**:
+   - Enable `COLLECT_SHADER_VARIANTS` scripting define and make a development build
+   - Run the game on device — shader variant upload lines are captured from the platform log
+   - `ShaderPreCompiler` reads the log, filters for upload lines after the recording marker, and sends them to the Editor via `PlayerConnection`
+   - `ShaderVariantLogReceiver` (Editor) appends received lines to the shaders log file
+   - The log parser automatically cleans and deduplicates entries, preserving older data
 2. **Processing Phase**:
-   - Analyzes and re-generate the updated ShaderVariantCollection on the next build (manual option to update the svc if needed: `Tools/Shader Variants Tools/Shader Variants Processor`)
-      - Parses the log file:
-         - Extracts shader names, pass types, keywords, and upload times
-         - Identifies and collects global keywords used at runtime
-      - Filters variants based on settings
-         - Minimum upload time threshold (`minUploadTime`)
-         - Upload count (skips variants uploaded multiple times if `skipMultipleUploads` is enabled)
-      - Updates the ShaderVariantCollection
+   - Analyzes and re-generates the updated ShaderVariantCollection on the next build
+   - Manual option: `Tools/Shader Variants Tools/Shader Variants Processor`
+   - Parses the log file:
+      - Extracts shader names, pass types, keywords, and upload times
+      - Identifies and collects global keywords used at runtime
+   - Filters variants based on settings:
+      - Minimum upload time threshold (`minUploadTime`)
+      - Upload count (skips variants uploaded multiple times if `skipMultipleUploads` is enabled)
+   - Updates the ShaderVariantCollection
 3. **Stripping Phase (Build Time)**:
    - Strips unused shader variants based on keyword combinations:
       - Compares each variant's local keywords against collected keyword combinations
       - Keeps variants that match any collected keyword combination for that shader
-   - Generates compilation report: Logs all compiled variants to `Artifact/ShaderVariantsCompiled.txt`
-   - Can be disabled: Set `strippingEnabled = false` in settings to disable stripping
-3. **Runtime Pre-compilation**:
-   - ShaderPreCompiler loads and warms up variants at startup
+   - Generates compilation report: `Artifact/ShaderVariantsCompiled.txt`
+   - Can be disabled: Set `strippingEnabled = false` in settings
+4. **Runtime Pre-warming**:
+    - `ShaderPreCompiler` loads and warms up the SVC at startup
 
-## Debug Options
-- DEBUG_SHADER_VARIANTS - Disables stripping and prewarming to identify currently needed variants
-   - Use this during Maintenance phase
-   - All variants will be compiled and logged
-   - No variants will be stripped
+### GraphicsStateCollection (GSC / PSO Caching) Workflow
+1. **Tracing (Collecting)**:
+   - Enable `COLLECT_SHADER_VARIANTS` scripting define and make a development build
+   - `GraphicsStateCollectionTrace` starts a trace at runtime to record pipeline state objects
+   - Collection files are saved.
+2. **Warmup**:
+   - `GraphicsStateCollectionTrace` finds the matching collection for the current platform, graphics API, and quality level, then warms it up
+3. **Editor Setup**:
+   - Right-click the `GraphicsStateCollectionTrace` component → "Update collection list" to refresh available collections
+   - Collections are also auto-discovered when the component is first added (`Reset`)
+
+## Define Symbols
+- `COLLECT_SHADER_VARIANTS` — Disables stripping and prewarming; enables shader variant log collection and GSC tracing
+  - Use this during the Maintenance/Tracing phase
+  - All variants will be compiled and logged
+  - No variants will be stripped
 
 ## Tools Menu
-- `Tools/Shader Optimization/Shader Variants Processor`: Manually process shader variants and update collections
+- `Tools/Shader Variants Tools/Shader Variants Processor`: Manually process shader variants and update collections
 
 ## Notes
-- **Important**: All shaders in the SVC must be loaded before loading the SVC itself. Otherwise this will cause Unity to duplicate the shaders in the build and pre-warm incorrect versions.
-- Repeat maintenance phase when adding new shaders/materials.
+- **Important**: All shaders in the SVC must be loaded before loading the SVC itself. Otherwise Unity will duplicate the shaders in the build and pre-warm incorrect versions.
+- Comments marked `NOTE[Addressables]` indicate where to add addressables loading logic
+- Repeat the maintenance phase when adding new shaders or materials.

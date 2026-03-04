@@ -50,9 +50,7 @@ public class StripShaderVariants : IPreprocessShaders
 
     private static bool ShouldStripVariant(Shader shader, string[] localKeywords)
     {
-#if DEBUG_SHADER_VARIANTS
-        return false;
-#else
+        if (ShaderVariantToolingConstants.IsCollectingRuntimeVariants) return false;
         if (!_settings.strippingEnabled) return false;
 
         if (ShaderVariantsProcessor.IgnoreShader(shader, localKeywords)) return false;
@@ -71,6 +69,5 @@ public class StripShaderVariants : IPreprocessShaders
         }
 
         return !hasMatch;
-#endif
     }
 }

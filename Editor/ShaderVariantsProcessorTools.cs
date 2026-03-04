@@ -16,14 +16,14 @@ public class ShaderVariantsProcessorTools : IPreprocessBuildWithReport
     {
         try
         {
-#if DEVELOPMENT_BUILD || DEBUG_SHADER_VARIANTS
+#if DEVELOPMENT_BUILD || COLLECT_SHADER_VARIANTS
             GraphicsSettings.logWhenShaderIsCompiled = true;
 #endif
             ShaderVariantsProcessor.ProcessShaderVariants();
         }
         catch (Exception ex)
         {
-            Debug.LogError($"Failed to update ShaderVariantsCollections: {ex.Message}\n{ex.StackTrace}");
+            Debug.LogError($"[ShaderVariantsProcessorTools] Failed to update ShaderVariantsCollections: {ex.Message}\n{ex.StackTrace}");
         }
     }
 }

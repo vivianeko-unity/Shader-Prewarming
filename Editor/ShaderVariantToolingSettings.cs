@@ -14,33 +14,25 @@ public class ShaderVariantToolingSettings : ScriptableObject
     public TextAsset logFile;
     public string LogFilePath => logFile ? AssetDatabase.GetAssetPath(logFile) : "Assets/Editor/ShadersLog.txt";
 
-    [Tooltip("The beginning part of each line when a shader variant is uploaded to the gpu.")]
-    public string lineBeginning = "Uploaded shader variant to the GPU driver:";
-
     [Header("Filtering")]
     [Tooltip("Minimum upload time (in ms) for a shader variant to be included.")]
     public float minUploadTime = 0;
-
     [Tooltip(
         "Skip shader variants that were uploaded multiple times, indicating potential differences in vertex layout data.")]
     public bool skipMultipleUploads = true;
 
-    [Tooltip("The line when parsing should start so we only pre-compile variants uploaded after the loading screen")]
-    public string startingLine = "ShaderPreCompiler: Disabled, debugging variants to pre-compile.";
-
+    [Header("Pre-warming")]
     [Tooltip("The shader variant collection to be pre-compiled.")]
     public ShaderVariantCollection warmupSvc;
     private string WarmupSvcPath => warmupSvc ? AssetDatabase.GetAssetPath(warmupSvc) : "Assets/Shaders/ShaderVariantsToPreCompile.shadervariants";
-
     [Tooltip("If adding variants manually to warmup")]
     public List<ShaderVariantData> manualShaderVariantsData;
 
     [Header("Stripping")]
-    [Tooltip(
-        "When enabled, preserves manually added keyword variants. When disabled, resets to only variants found in the current log and project materials.")]
-    public bool keepExistingLocalKeywords = true;
-
+    [Tooltip("Enable shader variant stripping at build time for addressables and player builds.")]
     public bool strippingEnabled = true;
+    [Tooltip("Disabled: reset to variants found in the current log and project materials only and remove manually added variants.")]
+    public bool keepExistingLocalKeywords = true;
 
     [Space] public List<string> enabledGlobalKeywords;
     [Space] public List<ShaderKeywordsData> localKeywords;
@@ -80,25 +72,28 @@ public class ShaderVariantToolingSettings : ScriptableObject
 
     private void ValidateLogFile()
     {
-        logFile = AssetDatabase.LoadAssetAtPath<TextAsset>(LogFilePath);
+        string path = LogFilePath;
+        logFile = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
         if (logFile) return;
-
-        File.WriteAllText(LogFilePath, startingLine + Environment.NewLine);
+        
+        File.WriteAllText(path, ShaderVariantToolingConstants.LogRecordingMarker + Environment.NewLine);
         AssetDatabase.Refresh();
-        logFile = AssetDatabase.LoadAssetAtPath<TextAsset>(LogFilePath);
+        logFile = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
+        AssetDatabase.ImportAsset(LogFilePath);
     }
 
     private void ValidateWarmupSvc()
     {
-        warmupSvc = AssetDatabase.LoadAssetAtPath<ShaderVariantCollection>(WarmupSvcPath);
+        string path = WarmupSvcPath;
+        warmupSvc = AssetDatabase.LoadAssetAtPath<ShaderVariantCollection>(path);
         if (warmupSvc) return;
 
-        string directoryName = Path.GetDirectoryName(WarmupSvcPath);
+        string directoryName = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
             Directory.CreateDirectory(directoryName);
 
         warmupSvc = new ShaderVariantCollection();
-        AssetDatabase.CreateAsset(warmupSvc, WarmupSvcPath);
+        AssetDatabase.CreateAsset(warmupSvc, path);
         AssetDatabase.SaveAssets();
     }
 }

@@ -56,7 +56,7 @@ public static class ShaderVariantParser
         try
         {
             string[] lines = File.ReadAllLines(_settings.LogFilePath);
-            int startingLineIndex = Array.FindIndex(lines, line => line == _settings.startingLine);
+            int startingLineIndex = Array.FindIndex(lines, line => line == ShaderVariantToolingConstants.LogRecordingMarker);
             bool hasStartingLine = startingLineIndex >= 0;
             List<string> afterStart = hasStartingLine ? lines.Skip(startingLineIndex + 1).ToList() : lines.ToList();
 
@@ -74,9 +74,9 @@ public static class ShaderVariantParser
                 newRaw = null;
             }
 
-            List<string> oldSection = oldRaw.Where(line => line.Contains(_settings.lineBeginning))
+            List<string> oldSection = oldRaw.Where(line => line.Contains(ShaderVariantToolingConstants.ShaderUploadLinePrefix))
                 .Select(line => {
-                    int index = line.IndexOf(_settings.lineBeginning, StringComparison.Ordinal);
+                    int index = line.IndexOf(ShaderVariantToolingConstants.ShaderUploadLinePrefix, StringComparison.Ordinal);
                     return index >= 0 ? line.Substring(index).Trim() : line.Trim();
                 }).ToList();
 
@@ -88,9 +88,9 @@ public static class ShaderVariantParser
             }
             else
             {
-                List<string> newSection = newRaw.Where(line => line.Contains(_settings.lineBeginning))
+                List<string> newSection = newRaw.Where(line => line.Contains(ShaderVariantToolingConstants.ShaderUploadLinePrefix))
                     .Select(line => {
-                        int index = line.IndexOf(_settings.lineBeginning, StringComparison.Ordinal);
+                        int index = line.IndexOf(ShaderVariantToolingConstants.ShaderUploadLinePrefix, StringComparison.Ordinal);
                         return index >= 0 ? line.Substring(index).Trim() : line.Trim();
                     }).ToList();
 
@@ -122,7 +122,7 @@ public static class ShaderVariantParser
         }
         catch (Exception ex)
         {
-            Debug.LogError($"Failed to preprocess the log file: {ex.Message}");
+            Debug.LogError($"[ShaderVariantParser] Failed to preprocess the log file: {ex.Message}");
             return null;
         }
     }
@@ -130,7 +130,7 @@ public static class ShaderVariantParser
     private static void CleanupLogFile(List<string> filteredLines)
     {
         StringBuilder sb = new();
-        sb.AppendLine(_settings.startingLine);
+        sb.AppendLine(ShaderVariantToolingConstants.LogRecordingMarker);
         sb.Append(string.Join(Environment.NewLine, filteredLines));
 
         if (filteredLines.Count > 0) sb.AppendLine();
@@ -151,8 +151,8 @@ public static class ShaderVariantParser
         try
         {
             // extract shader
-            int shaderNameStart = line.IndexOf(_settings.lineBeginning, StringComparison.Ordinal) +
-                                  _settings.lineBeginning.Length;
+            int shaderNameStart = line.IndexOf(ShaderVariantToolingConstants.ShaderUploadLinePrefix, StringComparison.Ordinal) +
+                                  ShaderVariantToolingConstants.ShaderUploadLinePrefix.Length;
             int shaderNameEnd = line.Contains("(instance")
                 ? line.IndexOf(" (instance", shaderNameStart, StringComparison.Ordinal)
                 : line.IndexOf(", pass:", shaderNameStart, StringComparison.Ordinal);
@@ -160,7 +160,7 @@ public static class ShaderVariantParser
             Shader shader = Shader.Find(shaderName);
             if (shader is null)
             {
-                Debug.LogWarning($"Shader {shaderName} was not found.");
+                Debug.LogWarning($"[ShaderVariantParser] Shader {shaderName} was not found.");
                 return null;
             }
 
@@ -197,9 +197,9 @@ public static class ShaderVariantParser
                 duration = float.Parse(timeString);
             }
 
-            /*Debug.Log(
-                $"Found variant in log: {shaderName} | passType: {passType} | PassName: {passName} | " +
-                $"LightMode: {lightMode} | keywords: {string.Join(" ", keywordArray)} | duration: {duration} ms");*/
+            // Debug.Log("[ShaderVariantParser] "+
+            //     $"Found variant in log: {shaderName} | passType: {passType} | PassName: {passName} | " +
+            //     $"LightMode: {lightMode} | keywords: {string.Join(" ", keywordArray)} | duration: {duration} ms");
 
             return new ShaderVariantData
             {
@@ -208,7 +208,7 @@ public static class ShaderVariantParser
         }
         catch (Exception ex)
         {
-            Debug.LogWarning($"Failed to parse variant for line: {line}\nError: {ex.Message}");
+            Debug.LogWarning($"[ShaderVariantParser] Failed to parse variant for line: {line}\nError: {ex.Message}");
             return null;
         }
     }
@@ -278,7 +278,7 @@ public static class ShaderVariantParser
         }
         catch (Exception ex)
         {
-            Debug.LogWarning($"Failed to collect global keywords from line: {line}\nError: {ex.Message}");
+            Debug.LogWarning($"[ShaderVariantParser] Failed to collect global keywords from line: {line}\nError: {ex.Message}");
         }
     }
 

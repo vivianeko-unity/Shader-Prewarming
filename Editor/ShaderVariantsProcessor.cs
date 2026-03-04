@@ -20,16 +20,16 @@ public class ShaderVariantsProcessor
     [MenuItem("Tools/Shader Variants Tools/Shader Variants Processor")]
     public static void ProcessShaderVariants()
     {
-        Debug.Log("Processing shader variants...");
+        Debug.Log("[ShaderVariantsProcessor] Processing shader variants...");
 
         Setup();
         UpdateVariantListToPreCompile();
-        Debug.Log("Variant list to pre-compile updated");
+        Debug.Log("[ShaderVariantsProcessor] Variant list to pre-compile updated");
 
         UpdateVariantListToStrip();
-        Debug.Log("Variant list to strip updated");
+        Debug.Log("[ShaderVariantsProcessor] Variant list to strip updated");
 
-        Debug.Log("Shader variant processing complete");
+        Debug.Log("[ShaderVariantsProcessor] Shader variant processing complete");
         EditorUtility.FocusProjectWindow();
         Selection.activeObject = _settings;
         EditorGUIUtility.PingObject(_settings);
@@ -59,7 +59,7 @@ public class ShaderVariantsProcessor
             if (variantData.uploadTime < _settings.minUploadTime)
             {
                 // Debug.LogWarning(
-                //     $"[SKIPPED] Shader: {variantData.shader.name}\n" +
+                //     $"[ShaderVariantsProcessor] [SKIPPED] Shader: {variantData.shader.name}\n" +
                 //     $"Upload time ({variantData.uploadTime} ms) is below the threshold ({_settings.minUploadTime} ms).");
                 continue;
             }
@@ -67,7 +67,7 @@ public class ShaderVariantsProcessor
             if (_settings.skipMultipleUploads && variantData.uploadCount > 1)
             {
                 // Debug.LogWarning(
-                //     $"[SKIPPED] Shader: {variantData.shader.name}\n" +
+                //     $"[ShaderVariantsProcessor] [SKIPPED] Shader: {variantData.shader.name}\n" +
                 //     $"Uploaded {variantData.uploadCount} times, indicating potential differences in vertex layout data.");
                 continue;
             }
@@ -81,7 +81,7 @@ public class ShaderVariantsProcessor
             //
             // if (entry == null)
             // {
-            //     Debug.LogWarning($"[SKIPPED] Shader: {variantData.shader.name} is not addressable");
+            //     Debug.LogWarning($"[ShaderVariantsProcessor] [SKIPPED] Shader: {variantData.shader.name} is not addressable");
             //     continue;
             // }
 
@@ -167,13 +167,13 @@ public class ShaderVariantsProcessor
         if (uniqueVariants.Contains(uniqueKey)) return;
         if (keepExisting == false)
         {
-            Debug.Log($"Removed existing variant: {uniqueKey}");
+            Debug.Log($"[ShaderVariantsProcessor] Removed existing variant: {uniqueKey}");
             return;
         }
 
         uniqueVariants.Add(uniqueKey);
         variantList.Add(new ShaderKeywordsData { shader = shader, keywords = localKeywords });
-        if (keepExisting == true) Debug.Log($"Kept existing variant: {uniqueKey}");
+        if (keepExisting == true) Debug.Log($"[ShaderVariantsProcessor] Kept existing variant: {uniqueKey}");
     }
 
     private static readonly string[] IgnoredShaders =
