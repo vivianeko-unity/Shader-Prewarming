@@ -1,6 +1,9 @@
 using System;
 using System.IO;
 using System.Text;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 using UnityEngine;
 using UnityEngine.Networking.PlayerConnection;
 
@@ -18,6 +21,20 @@ public class ShaderPreCompiler : MonoBehaviour
     private string _logPath;
     private long _lastPosition;
     private bool _foundStartMarker;
+    
+#if UNITY_EDITOR
+    private void Reset()
+    {
+        UpdateCollectionList();
+    }
+
+    [ContextMenu("Update collection list")]
+    public void UpdateCollectionList()
+    {
+        shaderVariantCollection =
+            AssetDatabase.LoadAssetAtPath<ShaderVariantCollection>(ShaderVariantToolingConstants.ShaderVariantCollectionPath);
+    }
+#endif
     
     private void Start()
     {

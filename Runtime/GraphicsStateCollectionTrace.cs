@@ -28,14 +28,14 @@ public class GraphicsStateCollectionTrace : MonoBehaviour
     [ContextMenu("Update collection list")]
     public void UpdateCollectionList()
     {
-        string directoryName = "Assets/" + ShaderVariantToolingConstants.CollectionFolderPath.TrimEnd('/');
+        string directoryName = "Assets/" + ShaderVariantToolingConstants.GraphicsStateCollectionFolderPath.TrimEnd('/');
         if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
             Directory.CreateDirectory(directoryName);
         AssetDatabase.Refresh();
 
         string[] collectionGUIDs =
             AssetDatabase.FindAssets("t:GraphicsStateCollection",
-                                     new[] { "Assets/" + ShaderVariantToolingConstants.CollectionFolderPath });
+                                     new[] { "Assets/" + ShaderVariantToolingConstants.GraphicsStateCollectionFolderPath });
         graphicsStateCollections = new GraphicsStateCollection[collectionGUIDs.Length];
         for (var i = 0; i < graphicsStateCollections.Length; i++)
         {
@@ -137,7 +137,7 @@ public class GraphicsStateCollectionTrace : MonoBehaviour
     {
         if (graphicsStateCollection)
         {
-            _collectionName = ShaderVariantToolingConstants.CollectionFolderPath + graphicsStateCollection.name;
+            _collectionName = ShaderVariantToolingConstants.GraphicsStateCollectionFolderPath + graphicsStateCollection.name;
         }
         else
         {
@@ -145,7 +145,7 @@ public class GraphicsStateCollectionTrace : MonoBehaviour
             string qualityLevelName = QualitySettings.names[qualityLevelIndex];
             qualityLevelName = qualityLevelName.Replace(" ", "");
 
-            _collectionName = string.Concat(ShaderVariantToolingConstants.CollectionFolderPath, "GfxState_",
+            _collectionName = string.Concat(ShaderVariantToolingConstants.GraphicsStateCollectionFolderPath, "GfxState_",
                                             Application.platform, "_",
                                             SystemInfo.graphicsDeviceType.ToString(), "_", qualityLevelName);
             graphicsStateCollection = new GraphicsStateCollection();

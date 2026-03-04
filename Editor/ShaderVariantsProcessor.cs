@@ -88,16 +88,16 @@ public class ShaderVariantsProcessor
             variantDatas.Add(variantData);
         }
 
-        _settings.warmupSvc.Clear();
+        _settings.WarmupSvc.Clear();
         foreach (ShaderVariantData variant in variantDatas)
         {
-            _settings.warmupSvc.Add(new ShaderVariantCollection.ShaderVariant
+            _settings.WarmupSvc.Add(new ShaderVariantCollection.ShaderVariant
             {
                 shader = variant.shader, passType = variant.passType, keywords = variant.keywords
             });
         }
 
-        EditorUtility.SetDirty(_settings.warmupSvc);
+        EditorUtility.SetDirty(_settings.WarmupSvc);
         AssetDatabase.SaveAssets();
     }
 

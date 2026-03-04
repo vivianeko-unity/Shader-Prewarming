@@ -10,9 +10,9 @@ public class ShaderVariantToolingSettings : ScriptableObject
     public static ShaderVariantToolingSettings Instance => LoadOrCreate();
 
     [Header("Log Parsing")]
-    [Tooltip("ShadersLog.txt file.")]
-    public TextAsset logFile;
-    public string LogFilePath => logFile ? AssetDatabase.GetAssetPath(logFile) : "Assets/Editor/ShadersLog.txt";
+    [Tooltip("Loaded from ShaderVariantToolingConstants.LogFilePath")]
+    [SerializeField] private TextAsset logFile;
+    public string LogFilePath => ShaderVariantToolingConstants.LogFilePath;
 
     [Header("Filtering")]
     [Tooltip("Minimum upload time (in ms) for a shader variant to be included.")]
@@ -22,9 +22,9 @@ public class ShaderVariantToolingSettings : ScriptableObject
     public bool skipMultipleUploads = true;
 
     [Header("Pre-warming")]
-    [Tooltip("The shader variant collection to be pre-compiled.")]
-    public ShaderVariantCollection warmupSvc;
-    private string WarmupSvcPath => warmupSvc ? AssetDatabase.GetAssetPath(warmupSvc) : "Assets/Shaders/ShaderVariantsToPreCompile.shadervariants";
+    [Tooltip("Loaded from ShaderVariantToolingConstants.WarmupSvcPath")]
+    [SerializeField] private ShaderVariantCollection warmupSvc;
+    public ShaderVariantCollection WarmupSvc => warmupSvc;
     [Tooltip("If adding variants manually to warmup")]
     public List<ShaderVariantData> manualShaderVariantsData;
 
@@ -70,6 +70,13 @@ public class ShaderVariantToolingSettings : ScriptableObject
         _instance.ValidateWarmupSvc();
     }
 
+    private void OnValidate()
+    {
+        // Keep the asset references same as const paths — prevent swapping.
+        logFile = AssetDatabase.LoadAssetAtPath<TextAsset>(LogFilePath);
+        warmupSvc = AssetDatabase.LoadAssetAtPath<ShaderVariantCollection>(ShaderVariantToolingConstants.ShaderVariantCollectionPath);
+    }
+
     private void ValidateLogFile()
     {
         string path = LogFilePath;
@@ -84,7 +91,7 @@ public class ShaderVariantToolingSettings : ScriptableObject
 
     private void ValidateWarmupSvc()
     {
-        string path = WarmupSvcPath;
+        string path = ShaderVariantToolingConstants.ShaderVariantCollectionPath;
         warmupSvc = AssetDatabase.LoadAssetAtPath<ShaderVariantCollection>(path);
         if (warmupSvc) return;
 
