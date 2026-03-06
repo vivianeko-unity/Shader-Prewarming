@@ -13,9 +13,13 @@ This helps optimize shaders by:
 
 ## Setup
 1. A `ShaderVariantToolingSettings` asset is auto-created in `Assets/Editor/` on first use
-2. Add the `ShaderPreCompiler` component to a GameObject for SVC warmup and shader variant log collection
-3. Add the `GraphicsStateCollectionTrace` component to a GameObject for GSC tracing and warmup
-4. Run the Maintenance phase to collect shader variant data
+2. A `ShaderVariantToolingPrecompiler` prefab is auto-created and kept in sync with settings — drop it in your scene
+3. Run the Maintenance phase to collect shader variant data
+
+The prefab contains three components managed automatically by settings:
+- `ShaderVariantToolingManager` — owns the singleton, `DontDestroyOnLoad`, and all data sending via `PlayerConnection`
+- `ShaderVariantCollectionPreCompiler` — handles SVC warmup and shader variant log collection
+- `GraphicsStateCollectionPreCompiler` — handles GSC tracing and warmup
 
 ## How It Works
 
@@ -23,8 +27,9 @@ This helps optimize shaders by:
 1. **Maintenance (Collecting)**:
    - Enable `COLLECT_SHADER_VARIANTS` scripting define and make a development build
    - Run the game on device — shader variant upload lines are captured from the platform log
-   - `ShaderPreCompiler` reads the log, filters for upload lines after the recording marker, and sends them to the Editor via `PlayerConnection`
-   - `ShaderVariantLogReceiver` (Editor) appends received lines to the shaders log file
+   - `ShaderVariantCollectionPreCompiler` reads the log and filters for upload lines after the recording marker
+   - `ShaderVariantToolingManager` sends all collected data to the Editor via `PlayerConnection` on focus loss or quit
+   - `ShaderVariantToolingReceiver` (Editor) appends received lines to the shaders log file and updates the prefab
    - The log parser automatically cleans and deduplicates entries, preserving older data
 2. **Processing Phase**:
    - Analyzes and re-generates the updated ShaderVariantCollection on the next build
@@ -43,18 +48,16 @@ This helps optimize shaders by:
    - Generates compilation report: `Artifact/ShaderVariantsCompiled.txt`
    - Can be disabled: Set `strippingEnabled = false` in settings
 4. **Runtime Pre-warming**:
-    - `ShaderPreCompiler` loads and warms up the SVC at startup
+   - `ShaderVariantCollectionPreCompiler` loads and warms up the SVC at startup
 
 ### GraphicsStateCollection (GSC / PSO Caching) Workflow
 1. **Tracing (Collecting)**:
    - Enable `COLLECT_SHADER_VARIANTS` scripting define and make a development build
-   - `GraphicsStateCollectionTrace` starts a trace at runtime to record pipeline state objects
-   - Collection files are saved.
+   - `GraphicsStateCollectionPreCompiler` starts a trace at runtime to record pipeline state objects
+   - On focus loss or quit, `ShaderVariantToolingManager` triggers the collection to be sent to the Editor
+   - The Editor saves the collection file and automatically updates the prefab's collection list
 2. **Warmup**:
-   - `GraphicsStateCollectionTrace` finds the matching collection for the current platform, graphics API, and quality level, then warms it up
-3. **Editor Setup**:
-   - Right-click the `GraphicsStateCollectionTrace` component → "Update collection list" to refresh available collections
-   - Collections are also auto-discovered when the component is first added (`Reset`)
+   - `GraphicsStateCollectionPreCompiler` finds the matching collection for the current platform, graphics API, and quality level, then warms it up
 
 ## Define Symbols
 - `COLLECT_SHADER_VARIANTS` — Disables stripping and prewarming; enables shader variant log collection and GSC tracing
@@ -69,3 +72,4 @@ This helps optimize shaders by:
 - **Important**: All shaders in the SVC must be loaded before loading the SVC itself. Otherwise Unity will duplicate the shaders in the build and pre-warm incorrect versions.
 - Comments marked `NOTE[Addressables]` indicate where to add addressables loading logic
 - Repeat the maintenance phase when adding new shaders or materials.
+- The prefab is automatically kept in sync with settings — no manual scene saves or component configuration required
