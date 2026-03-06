@@ -51,6 +51,7 @@ public class StripShaderVariants : IPreprocessShaders
     private static bool ShouldStripVariant(Shader shader, string[] localKeywords)
     {
         if (ShaderVariantToolingConstants.IsCollectingRuntimeVariants) return false;
+        
         if (!_settings.strippingEnabled) return false;
 
         if (ShaderVariantsProcessor.IgnoreShader(shader, localKeywords)) return false;

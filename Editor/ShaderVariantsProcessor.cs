@@ -6,7 +6,7 @@ using UnityEditor;
 using UnityEngine.Rendering;
 
 /// <summary>
-/// Generates new shader variants to be pre-warmed by ShaderPreCompiler.
+/// Generates new shader variants to be pre-warmed by ShaderVariantCollectionPreCompiler.
 /// Filters variants based on upload time and occurrence count.
 /// Generates shader variants to be kept during stripping, based on project materials.
 /// </summary>
@@ -56,21 +56,9 @@ public class ShaderVariantsProcessor
 
         foreach (ShaderVariantData variantData in _variantWarmupDataList)
         {
-            if (variantData.uploadTime < _settings.minUploadTime)
-            {
-                // Debug.LogWarning(
-                //     $"[ShaderVariantsProcessor] [SKIPPED] Shader: {variantData.shader.name}\n" +
-                //     $"Upload time ({variantData.uploadTime} ms) is below the threshold ({_settings.minUploadTime} ms).");
-                continue;
-            }
+            if (variantData.uploadTime < _settings.minUploadTime) continue;
 
-            if (_settings.skipMultipleUploads && variantData.uploadCount > 1)
-            {
-                // Debug.LogWarning(
-                //     $"[ShaderVariantsProcessor] [SKIPPED] Shader: {variantData.shader.name}\n" +
-                //     $"Uploaded {variantData.uploadCount} times, indicating potential differences in vertex layout data.");
-                continue;
-            }
+            if (_settings.skipMultipleUploads && variantData.uploadCount > 1) continue;
 
             // NOTE[Addressables]:
             // Uncomment below to only include Addressables shaders If svc is in addressables, any shaders included will be addressables
@@ -191,7 +179,7 @@ public class ShaderVariantsProcessor
 
     private static readonly string[] StripShaders =
     {
-        // Add shaders here to strip completely, regardless of keywords or usage in materials.
+        // Add shaders to strip completely, regardless of keywords or usage in materials.
         //"Universal Render Pipeline/Nature/SpeedTree8_PBRLit",
         //"Universal Render Pipeline/Nature/SpeedTree9_URP"
     };
