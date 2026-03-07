@@ -1,7 +1,7 @@
 ﻿using System;
-using UnityEngine;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEngine;
 using UnityEngine.Rendering;
 
 /// <summary>
@@ -16,14 +16,14 @@ public class ShaderVariantsProcessorTools : IPreprocessBuildWithReport
     {
         try
         {
-#if DEVELOPMENT_BUILD || COLLECT_SHADER_VARIANTS
+#if DEBUG || COLLECT_SHADER_VARIANTS
             GraphicsSettings.logWhenShaderIsCompiled = true;
 #endif
             ShaderVariantsProcessor.ProcessShaderVariants();
         }
         catch (Exception ex)
         {
-            Debug.LogError($"[ShaderVariantsProcessorTools] Failed to update ShaderVariantsCollections: {ex.Message}\n{ex.StackTrace}");
+            Debug.LogError($"[ShaderVariantsProcessorTools] Failed to process build: {ex.Message}\n{ex.StackTrace}");
         }
     }
 }

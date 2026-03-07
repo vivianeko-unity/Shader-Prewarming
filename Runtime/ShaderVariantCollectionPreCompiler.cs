@@ -11,27 +11,31 @@ using UnityEngine;
 /// </summary>
 public class ShaderVariantCollectionPreCompiler : MonoBehaviour
 {
-    public ShaderVariantCollection shaderVariantCollection;
+    [HideInInspector] public bool methodEnabled = true;
+    [HideInInspector] public ShaderVariantCollection shaderVariantCollection;
+    
     private readonly StringBuilder _buffer = new();
     private string _logPath;
     private long _lastPosition;
     private bool _isCollectingRuntimeVariants;
-    
+
     private void Awake()
     {
         _isCollectingRuntimeVariants = ShaderVariantToolingConstants.IsCollectingRuntimeVariants;
     }
-    
+
     private void Start()
     {
+        if (!methodEnabled) return;
+
         // NOTE[Addressables]:
         // Wait for shaders bundle (with SVC in it) to be downloaded first here before\
         LoadSvc();
     }
-    
+
     public byte[] GetLogData()
     {
-        if (!_isCollectingRuntimeVariants) return null;
+        if (!methodEnabled || !_isCollectingRuntimeVariants) return null;
 
         ReadNewLines();
         if (_buffer.Length == 0) return null;
@@ -83,7 +87,7 @@ public class ShaderVariantCollectionPreCompiler : MonoBehaviour
     {
         // NOTE[Addressables]:
         // Load the svc from addressables here
-        
+
         if (_isCollectingRuntimeVariants)
         {
             InitializeLogSender();
@@ -99,7 +103,7 @@ public class ShaderVariantCollectionPreCompiler : MonoBehaviour
             WarmupSvc();
         }
     }
-    
+
     private void InitializeLogSender()
     {
         _logPath = Application.consoleLogPath;
@@ -120,7 +124,8 @@ public class ShaderVariantCollectionPreCompiler : MonoBehaviour
 
         shaderVariantCollection.WarmUp();
 
-        Debug.Log($"[ShaderVariantCollectionPreCompiler] ShaderVariantCollection is warmed up: {shaderVariantCollection.isWarmedUp}, " +
-                  $"warmed up: {shaderVariantCollection.warmedUpVariantCount} variants out of {shaderVariantCollection.variantCount}");
+        Debug.Log(
+            $"[ShaderVariantCollectionPreCompiler] ShaderVariantCollection is warmed up: {shaderVariantCollection.isWarmedUp}, " +
+            $"warmed up: {shaderVariantCollection.warmedUpVariantCount} variants out of {shaderVariantCollection.variantCount}");
     }
 }

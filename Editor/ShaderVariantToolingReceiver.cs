@@ -30,6 +30,7 @@ public static class ShaderVariantToolingReceiver
             AssetDatabase.Refresh();
             EditorApplication.delayCall -= settings.ValidatePrecompilerPrefab;
             EditorApplication.delayCall += settings.ValidatePrecompilerPrefab;
+            EditorApplication.delayCall += ShaderVariantsProcessor.ProcessShaderVariants;
         };
     }
 }

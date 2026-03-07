@@ -5,51 +5,58 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 
+
 public class ShaderVariantToolingSettings : ScriptableObject
 {
     private static ShaderVariantToolingSettings _instance;
     public static ShaderVariantToolingSettings Instance => LoadOrCreate();
-    
+
     [HideInInspector] public string shaderVariantCollectionPath = "Assets/Shaders/ShaderVariantsToPreCompile.shadervariants";
     [HideInInspector] public string logFilePath = "Assets/Editor/ShadersLog.txt";
     [HideInInspector] public string precompilerPrefabPath = "Assets/ShaderVariantToolingPrecompiler.prefab";
 
-    [Header("Log Parsing")]
+    public enum WarmupMethod { ShaderVariantCollection, GraphicsStateCollection, Both }
+
+    [Header("Main Settings")]
+    [Tooltip("Method used for pre-warming.")]
+    public WarmupMethod warmupMethod = WarmupMethod.Both;
+
+    [Tooltip("Enable shader variant stripping at build time for addressables and player builds.")]
+    public bool strippingEnabled = true;
+
+    [Header("Assets")]
     [Tooltip("Shader log file")]
     [SerializeField] private TextAsset logFile;
-
-    [Header("Filtering")]
-    [Tooltip("Minimum upload time (in ms) for a shader variant to be included.")]
-    public float minUploadTime = 0;
-
-    [Tooltip(
-        "Skip shader variants that were uploaded multiple times, indicating potential differences in vertex layout data.")]
-    public bool skipMultipleUploads = true;
-
-    [Header("Pre-warming")]
-    [Tooltip("Path in project to store generated graphics state collections.")]
-    public string gscFolderPath = "Shaders/GraphicsStateCollections/";
-
-    [Tooltip("ShaderVariantCollection used for pre-warming.")]
-    [SerializeField] private ShaderVariantCollection warmupSvc;
-    public ShaderVariantCollection WarmupSvc => warmupSvc;
-
-    [Tooltip("If adding variants manually to warmup")]
-    public List<ShaderVariantData> manualShaderVariantsData;
 
     [Tooltip("Precompiler Prefab")]
     [SerializeField] private GameObject precompilerPrefab;
 
-    [Header("Stripping")]
-    [Tooltip("Enable shader variant stripping at build time for addressables and player builds.")]
-    public bool strippingEnabled = true;
+    [Tooltip("Path in project to store generated graphics state collections.")]
+    public string graphicsStateCollectionFolderPath = "Shaders/GraphicsStateCollections/";
+
+    [Tooltip("ShaderVariantCollection used for pre-warming.")]
+    [SerializeField] private ShaderVariantCollection warmupShaderVariantCollection;
+    public ShaderVariantCollection WarmupShaderVariantCollection => warmupShaderVariantCollection;
+
+    [Header("SVC Warmup Settings")]
+    [Tooltip("Minimum upload time (in ms) for a shader variant to be included in warmupShaderVariantCollection.")]
+    public float minUploadTime = 0;
 
     [Tooltip(
-        "Disabled: variants found in the current log and project materials only and remove manually added variants.")]
-    public bool keepExistingLocalKeywords = true;
+        "Does not include shader variants that were uploaded multiple times to warmupShaderVariantCollection, " +
+        "indicating potential differences in vertex layout data.")]
+    public bool skipMultipleUploads = true;
 
-    [Space] public List<string> enabledGlobalKeywords;
-    [Space] public List<ShaderKeywordsData> localKeywords;
+    [Header("Stripping Data")]
+
+    [Tooltip(
+        "Keep added local keywords from previous processing. When disabled, only use keywords from current log and project materials.")]
+    public bool keepExistingLocalKeywords = true;
+    [Tooltip("Per shader local keyword combinations. Used only for stripping to keep matching variants.")]
+    public List<ShaderKeywordsData> localKeywords;
+
+    [Tooltip("Project wide global keywords. Used only for stripping to filter out global keywords when matching local combinations.")]
+    public List<string> enabledGlobalKeywords;
 
     private static ShaderVariantToolingSettings LoadOrCreate()
     {
@@ -74,7 +81,8 @@ public class ShaderVariantToolingSettings : ScriptableObject
         _instance.ValidateLogFile();
         _instance.ValidateWarmupSvc();
         EditorApplication.delayCall += _instance.ValidatePrecompilerPrefab;
-
+        EditorApplication.delayCall += ShaderVariantsProcessor.GetAllEnabledGlobalKeywords;
+        EditorApplication.delayCall += ShaderVariantsProcessor.ProcessShaderVariants;
         return _instance;
     }
 
@@ -82,15 +90,15 @@ public class ShaderVariantToolingSettings : ScriptableObject
     {
         ValidateLogFile();
         ValidateWarmupSvc();
-        EditorApplication.delayCall -= ValidatePrecompilerPrefab;
         EditorApplication.delayCall += ValidatePrecompilerPrefab;
+        EditorApplication.delayCall += ShaderVariantsProcessor.GetAllEnabledGlobalKeywords;
+        EditorApplication.delayCall += ShaderVariantsProcessor.ProcessShaderVariants;
     }
 
     private void OnValidate()
     {
         ValidateLogFile();
         ValidateWarmupSvc();
-        EditorApplication.delayCall -= ValidatePrecompilerPrefab;
         EditorApplication.delayCall += ValidatePrecompilerPrefab;
     }
 
@@ -114,28 +122,27 @@ public class ShaderVariantToolingSettings : ScriptableObject
 
     private void ValidateWarmupSvc()
     {
-        if (warmupSvc)
+        if (warmupShaderVariantCollection)
         {
-            shaderVariantCollectionPath = AssetDatabase.GetAssetPath(warmupSvc);
+            shaderVariantCollectionPath = AssetDatabase.GetAssetPath(warmupShaderVariantCollection);
             return;
         }
 
         string path = shaderVariantCollectionPath;
-        warmupSvc = AssetDatabase.LoadAssetAtPath<ShaderVariantCollection>(path);
-        if (warmupSvc) return;
+        warmupShaderVariantCollection = AssetDatabase.LoadAssetAtPath<ShaderVariantCollection>(path);
+        if (warmupShaderVariantCollection) return;
 
         string directoryName = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
             Directory.CreateDirectory(directoryName);
 
-        warmupSvc = new ShaderVariantCollection();
-        AssetDatabase.CreateAsset(warmupSvc, path);
+        warmupShaderVariantCollection = new ShaderVariantCollection();
+        AssetDatabase.CreateAsset(warmupShaderVariantCollection, path);
         AssetDatabase.SaveAssets();
     }
 
     public void ValidatePrecompilerPrefab()
     {
-        EditorApplication.delayCall -= ValidatePrecompilerPrefab;
         if (precompilerPrefab)
         {
             precompilerPrefabPath = AssetDatabase.GetAssetPath(precompilerPrefab);
@@ -169,28 +176,50 @@ public class ShaderVariantToolingSettings : ScriptableObject
     {
         prefab.TryGetComponent(out ShaderVariantToolingManager manager);
         if (!manager) manager = prefab.AddComponent<ShaderVariantToolingManager>();
-        
+
         prefab.TryGetComponent(out ShaderVariantCollectionPreCompiler svcPreCompiler);
         if (!svcPreCompiler) svcPreCompiler = prefab.AddComponent<ShaderVariantCollectionPreCompiler>();
-        svcPreCompiler.shaderVariantCollection = warmupSvc;
+        svcPreCompiler.shaderVariantCollection = warmupShaderVariantCollection;
+        svcPreCompiler.methodEnabled =
+            warmupMethod == WarmupMethod.ShaderVariantCollection || warmupMethod == WarmupMethod.Both;
 
         prefab.TryGetComponent(out GraphicsStateCollectionPreCompiler gscPreCompiler);
         if (!gscPreCompiler) gscPreCompiler = prefab.AddComponent<GraphicsStateCollectionPreCompiler>();
-        gscPreCompiler.graphicsStateCollectionFolderPath = gscFolderPath;
+        gscPreCompiler.graphicsStateCollectionFolderPath = graphicsStateCollectionFolderPath;
+        gscPreCompiler.methodEnabled =
+            warmupMethod == WarmupMethod.GraphicsStateCollection || warmupMethod == WarmupMethod.Both;
 
         // Update graphicsStateCollections List
-        string directoryName = "Assets/" + gscFolderPath.TrimEnd('/');
+        string directoryName = "Assets/" + graphicsStateCollectionFolderPath.TrimEnd('/');
         if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
             Directory.CreateDirectory(directoryName);
         AssetDatabase.Refresh();
 
         string[] guids = AssetDatabase.FindAssets("t:GraphicsStateCollection",
-                                                  new[] { "Assets/" + gscFolderPath });
+                                                  new[] { "Assets/" + graphicsStateCollectionFolderPath });
         gscPreCompiler.graphicsStateCollections = new GraphicsStateCollection[guids.Length];
         for (var i = 0; i < guids.Length; i++)
         {
             gscPreCompiler.graphicsStateCollections[i] =
                 AssetDatabase.LoadAssetAtPath<GraphicsStateCollection>(AssetDatabase.GUIDToAssetPath(guids[i]));
         }
+    }
+
+    [ContextMenu("Collect Global Keywords From Editor")]
+    private void RefreshGlobalKeywords()
+    {
+        ShaderVariantsProcessor.GetAllEnabledGlobalKeywords();
+        
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+    }
+
+    [ContextMenu("Process Shader Variants")]
+    private void ReprocessShaderVariants()
+    {
+        ShaderVariantsProcessor.ProcessShaderVariants();
+        
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
     }
 }

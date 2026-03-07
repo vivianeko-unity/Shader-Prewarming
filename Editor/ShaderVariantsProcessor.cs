@@ -16,8 +16,37 @@ public class ShaderVariantsProcessor
     private static ShaderVariantToolingSettings _settings;
     private static List<ShaderVariantData> _variantWarmupDataList = new();
 
+    public static void GetAllEnabledGlobalKeywords()
+    {
+        Setup();
+        _settings.enabledGlobalKeywords ??= new List<string>();
+
+        int addedCount = 0;
+        foreach (GlobalKeyword keyword in Shader.enabledGlobalKeywords)
+        {
+            if (_settings.enabledGlobalKeywords.Contains(keyword.name)) continue;
+            _settings.enabledGlobalKeywords.Add(keyword.name);
+            addedCount++;
+        }
+
+        if (addedCount > 0)
+        {
+            Debug.Log($"[ShaderVariantsProcessor] Added {addedCount} global keywords. Total: {_settings.enabledGlobalKeywords.Count}");
+            EditorUtility.SetDirty(_settings);
+            AssetDatabase.SaveAssets();
+        }
+    }
+    
     // This should be called during builds
-    [MenuItem("Tools/Shader Variants Tools/Shader Variants Processor")]
+    [MenuItem("Tools/Shader Variants Tools/Open Settings")]
+    public static void OpenSettings()
+    {
+        Setup();
+        EditorUtility.FocusProjectWindow();
+        Selection.activeObject = _settings;
+        EditorGUIUtility.PingObject(_settings);
+    }
+
     public static void ProcessShaderVariants()
     {
         Debug.Log("[ShaderVariantsProcessor] Processing shader variants...");
@@ -30,9 +59,6 @@ public class ShaderVariantsProcessor
         Debug.Log("[ShaderVariantsProcessor] Variant list to strip updated");
 
         Debug.Log("[ShaderVariantsProcessor] Shader variant processing complete");
-        EditorUtility.FocusProjectWindow();
-        Selection.activeObject = _settings;
-        EditorGUIUtility.PingObject(_settings);
     }
 
     private static void Setup()
@@ -51,8 +77,7 @@ public class ShaderVariantsProcessor
     private static void UpdateVariantListToPreCompile()
     {
         _variantWarmupDataList = ShaderVariantParser.ParseShaderVariantsFromFile();
-        _settings.manualShaderVariantsData ??= new List<ShaderVariantData>();
-        var variantDatas = new List<ShaderVariantData>(_settings.manualShaderVariantsData);
+        var variantDatas = new List<ShaderVariantData>();
 
         foreach (ShaderVariantData variantData in _variantWarmupDataList)
         {
@@ -76,38 +101,27 @@ public class ShaderVariantsProcessor
             variantDatas.Add(variantData);
         }
 
-        _settings.WarmupSvc.Clear();
+        _settings.WarmupShaderVariantCollection.Clear();
         foreach (ShaderVariantData variant in variantDatas)
         {
-            _settings.WarmupSvc.Add(new ShaderVariantCollection.ShaderVariant
+            _settings.WarmupShaderVariantCollection.Add(new ShaderVariantCollection.ShaderVariant
             {
                 shader = variant.shader, passType = variant.passType, keywords = variant.keywords
             });
         }
 
-        EditorUtility.SetDirty(_settings.WarmupSvc);
+        EditorUtility.SetDirty(_settings.WarmupShaderVariantCollection);
         AssetDatabase.SaveAssets();
     }
 
     private static void UpdateVariantListToStrip()
     {
-        foreach (GlobalKeyword keyword in Shader.enabledGlobalKeywords)
-        {
-            if (_settings.enabledGlobalKeywords.Contains(keyword.name)) continue;
-            _settings.enabledGlobalKeywords.Add(keyword.name);
-        }
-
         _settings.localKeywords ??= new List<ShaderKeywordsData>();
 
         var uniqueVariants = new HashSet<string>();
         var variantList = new List<ShaderKeywordsData>();
 
         foreach (ShaderVariantData variant in _variantWarmupDataList)
-        {
-            AddKeywordsUnique(variantList, uniqueVariants, variant.shader, variant.keywords);
-        }
-
-        foreach (ShaderVariantData variant in _settings.manualShaderVariantsData)
         {
             AddKeywordsUnique(variantList, uniqueVariants, variant.shader, variant.keywords);
         }
