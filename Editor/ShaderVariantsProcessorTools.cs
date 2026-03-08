@@ -19,6 +19,7 @@ public class ShaderVariantsProcessorTools : IPreprocessBuildWithReport
 #if DEBUG || COLLECT_SHADER_VARIANTS
             GraphicsSettings.logWhenShaderIsCompiled = true;
 #endif
+            ShaderVariantsProcessor.SetupReportFile();
             ShaderVariantsProcessor.ProcessShaderVariants();
         }
         catch (Exception ex)

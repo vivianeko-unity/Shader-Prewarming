@@ -18,53 +18,31 @@ public class ShaderVariantsProcessor
 
     public static void GetAllEnabledGlobalKeywords()
     {
-        Setup();
+        _settings = ShaderVariantToolingSettings.Instance;
         _settings.enabledGlobalKeywords ??= new List<string>();
 
-        int addedCount = 0;
         foreach (GlobalKeyword keyword in Shader.enabledGlobalKeywords)
         {
             if (_settings.enabledGlobalKeywords.Contains(keyword.name)) continue;
             _settings.enabledGlobalKeywords.Add(keyword.name);
-            addedCount++;
         }
-
-        if (addedCount > 0)
-        {
-            Debug.Log($"[ShaderVariantsProcessor] Added {addedCount} global keywords. Total: {_settings.enabledGlobalKeywords.Count}");
-            EditorUtility.SetDirty(_settings);
-            AssetDatabase.SaveAssets();
-        }
+        
+        EditorUtility.SetDirty(_settings);
+        AssetDatabase.SaveAssets();
     }
     
-    // This should be called during builds
     [MenuItem("Tools/Shader Variants Tools/Open Settings")]
     public static void OpenSettings()
     {
-        Setup();
+        _settings = ShaderVariantToolingSettings.Instance;
         EditorUtility.FocusProjectWindow();
         Selection.activeObject = _settings;
         EditorGUIUtility.PingObject(_settings);
     }
-
-    public static void ProcessShaderVariants()
+    
+    // This should be called during builds
+    public static void SetupReportFile()
     {
-        Debug.Log("[ShaderVariantsProcessor] Processing shader variants...");
-
-        Setup();
-        UpdateVariantListToPreCompile();
-        Debug.Log("[ShaderVariantsProcessor] Variant list to pre-compile updated");
-
-        UpdateVariantListToStrip();
-        Debug.Log("[ShaderVariantsProcessor] Variant list to strip updated");
-
-        Debug.Log("[ShaderVariantsProcessor] Shader variant processing complete");
-    }
-
-    private static void Setup()
-    {
-        _settings = ShaderVariantToolingSettings.Instance;
-
         string directoryName = Path.GetDirectoryName(ReportPath);
         if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
             Directory.CreateDirectory(directoryName);
@@ -72,6 +50,17 @@ public class ShaderVariantsProcessor
         if (File.Exists(ReportPath)) File.SetAttributes(ReportPath, FileAttributes.Normal);
 
         File.WriteAllText(ReportPath, string.Empty);
+    }
+
+    // This should be called during builds
+    public static void ProcessShaderVariants()
+    {
+        _settings = ShaderVariantToolingSettings.Instance;
+        UpdateVariantListToPreCompile();
+        Debug.Log("[ShaderVariantsProcessor] Variant list to pre-compile updated");
+
+        UpdateVariantListToStrip();
+        Debug.Log("[ShaderVariantsProcessor] Variant list to strip updated");
     }
 
     private static void UpdateVariantListToPreCompile()

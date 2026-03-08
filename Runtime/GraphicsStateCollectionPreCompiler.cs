@@ -7,13 +7,17 @@ using UnityEngine.Experimental.Rendering;
 /// </summary>
 public class GraphicsStateCollectionPreCompiler : MonoBehaviour
 {
-    [HideInInspector] public bool methodEnabled = true;
-    [HideInInspector] public string graphicsStateCollectionFolderPath;
-    [HideInInspector] public GraphicsStateCollection[] graphicsStateCollections;
-    
+    private bool _active = true;
+    private string _graphicsStateCollectionFolderPath;
+    private GraphicsStateCollection[] _graphicsStateCollections;
+
     private GraphicsStateCollection _graphicsStateCollection;
     private string _collectionName;
     private bool _isCollectingRuntimeVariants;
+
+    public bool Active { set => _active = value; }
+    public string GraphicsStateCollectionFolderPath { set => _graphicsStateCollectionFolderPath = value; }
+    public GraphicsStateCollection[] GraphicsStateCollections { set => _graphicsStateCollections = value; }
 
     private void Awake()
     {
@@ -22,7 +26,7 @@ public class GraphicsStateCollectionPreCompiler : MonoBehaviour
 
     private void Start()
     {
-        if (!methodEnabled) return;
+        if (!_active) return;
 
         // NOTE[Addressables]:
         // Wait for shaders bundle (with GSCs in it) to be downloaded first here before.\
@@ -31,7 +35,7 @@ public class GraphicsStateCollectionPreCompiler : MonoBehaviour
 
     public void SendGsc(bool endTrace)
     {
-        if (!methodEnabled || !_isCollectingRuntimeVariants || !_graphicsStateCollection) return;
+        if (!_active || !_isCollectingRuntimeVariants || !_graphicsStateCollection) return;
 
         if (endTrace) _graphicsStateCollection.EndTrace();
 
@@ -45,7 +49,7 @@ public class GraphicsStateCollectionPreCompiler : MonoBehaviour
         // NOTE[Addressables]:
         // Load the GSCs from addressables here.
 
-        foreach (GraphicsStateCollection collection in graphicsStateCollections)
+        foreach (GraphicsStateCollection collection in _graphicsStateCollections)
         {
             if (!collection) continue;
             if (collection.runtimePlatform == Application.platform &&
@@ -77,7 +81,7 @@ public class GraphicsStateCollectionPreCompiler : MonoBehaviour
     {
         if (_graphicsStateCollection)
         {
-            _collectionName = graphicsStateCollectionFolderPath + _graphicsStateCollection.name;
+            _collectionName = _graphicsStateCollectionFolderPath + _graphicsStateCollection.name;
         }
         else
         {
@@ -85,7 +89,7 @@ public class GraphicsStateCollectionPreCompiler : MonoBehaviour
             string qualityLevelName = QualitySettings.names[qualityLevelIndex];
             qualityLevelName = qualityLevelName.Replace(" ", "");
 
-            _collectionName = string.Concat(graphicsStateCollectionFolderPath, "GfxState_",
+            _collectionName = string.Concat(_graphicsStateCollectionFolderPath, "GfxState_",
                                             Application.platform, "_",
                                             SystemInfo.graphicsDeviceType.ToString(), "_", qualityLevelName);
             _graphicsStateCollection = new GraphicsStateCollection();

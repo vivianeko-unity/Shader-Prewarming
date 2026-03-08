@@ -20,6 +20,9 @@ public static class ShaderVariantToolingReceiver
     
     private static void OnAllDataReceived(MessageEventArgs args)
     {
+        if (args.data == null || args.data.Length == 0)
+            return;
+
         string newLines = Encoding.UTF8.GetString(args.data).TrimEnd();
         if (!string.IsNullOrEmpty(newLines))
             File.AppendAllText(ShaderVariantToolingSettings.Instance.logFilePath, newLines + Environment.NewLine);

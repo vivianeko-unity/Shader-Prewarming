@@ -179,14 +179,14 @@ public class ShaderVariantToolingSettings : ScriptableObject
 
         prefab.TryGetComponent(out ShaderVariantCollectionPreCompiler svcPreCompiler);
         if (!svcPreCompiler) svcPreCompiler = prefab.AddComponent<ShaderVariantCollectionPreCompiler>();
-        svcPreCompiler.shaderVariantCollection = warmupShaderVariantCollection;
-        svcPreCompiler.methodEnabled =
+        svcPreCompiler.ShaderVariantCollection = warmupShaderVariantCollection;
+        svcPreCompiler.Active =
             warmupMethod == WarmupMethod.ShaderVariantCollection || warmupMethod == WarmupMethod.Both;
 
         prefab.TryGetComponent(out GraphicsStateCollectionPreCompiler gscPreCompiler);
         if (!gscPreCompiler) gscPreCompiler = prefab.AddComponent<GraphicsStateCollectionPreCompiler>();
-        gscPreCompiler.graphicsStateCollectionFolderPath = graphicsStateCollectionFolderPath;
-        gscPreCompiler.methodEnabled =
+        gscPreCompiler.GraphicsStateCollectionFolderPath = graphicsStateCollectionFolderPath;
+        gscPreCompiler.Active =
             warmupMethod == WarmupMethod.GraphicsStateCollection || warmupMethod == WarmupMethod.Both;
 
         // Update graphicsStateCollections List
@@ -197,12 +197,14 @@ public class ShaderVariantToolingSettings : ScriptableObject
 
         string[] guids = AssetDatabase.FindAssets("t:GraphicsStateCollection",
                                                   new[] { "Assets/" + graphicsStateCollectionFolderPath });
-        gscPreCompiler.graphicsStateCollections = new GraphicsStateCollection[guids.Length];
+        
+        var graphicsStateCollections = new GraphicsStateCollection[guids.Length];
         for (var i = 0; i < guids.Length; i++)
         {
-            gscPreCompiler.graphicsStateCollections[i] =
+            graphicsStateCollections[i] =
                 AssetDatabase.LoadAssetAtPath<GraphicsStateCollection>(AssetDatabase.GUIDToAssetPath(guids[i]));
         }
+        gscPreCompiler.GraphicsStateCollections = graphicsStateCollections;
     }
 
     [ContextMenu("Collect Global Keywords From Editor")]
